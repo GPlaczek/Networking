@@ -5,8 +5,15 @@
 #include <fcntl.h>
 #include <cstdio>
 #include <string.h>
+#include <QApplication>
+#include <QLabel>
 
 int main(int argc, char *argv[]) {
+    QApplication app(argc, argv);
+    QLabel hello("Hello world QT");
+    hello.show();
+    app.exec();
+
     if (argc < 3) {
         const char usage[] = "Usage:\n\t";
         write(STDERR_FILENO, usage, sizeof(usage));
