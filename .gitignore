@@ -1,4 +1,5 @@
 build/
+.cache/
 # gitignore template from: https://github.com/kigster/cmake-project-template/blob/master/.gitignore
 # Compiled Object files
 **/.DS_Store
