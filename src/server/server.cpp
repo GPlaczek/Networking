@@ -5,11 +5,21 @@
 #include <cstring>
 #include <cstdlib>
 
-#define OPTSTRING "i:p:r:c:q:"
+#define OPTSTRING "hi:p:r:c:q:"
 #define N_ROOMS_DEFAULT 16
 #define N_CLIENTS_DEFAULT 64
 #define QUEUE_LEN_DEFAULT 32
 
+void print_help(const char *name) {
+    printf("server - Taboo game server\n"
+        "Usage: %s [options]\n\nOptions:\n"
+        " -i <ip address>\n\tip address of the server\n"
+        " -p <port number>\n\tport for the listenning socket\n"
+        " -r <integer>\n\tmax number of rooms (default is %d)\n"
+        " -c <integer>\n\tmax number of clients (default is %d)\n"
+        " -q <integer>\n\tsocket queue length (default is %d)\n",
+        name, N_ROOMS_DEFAULT, N_CLIENTS_DEFAULT, QUEUE_LEN_DEFAULT);
+}
 class Server {
     size_t nRooms;
     size_t nClients;
@@ -85,15 +95,20 @@ int main(int argc, char *argv[]) {
                     exit(1);
                 }
                 break;
+            case 'h':
+                print_help(argv[0]);
+                exit(0);
         }
     }
 
     if (!pPort) {
         fprintf(stderr, "No port specified\n");
+        print_help(argv[0]);
         return 1;
     }
     if (!pAddr) {
         fprintf(stderr, "No ip address specified\n");
+        print_help(argv[0]);
         return 1;
     }
 
