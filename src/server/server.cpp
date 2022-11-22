@@ -1,9 +1,13 @@
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <thread>
+
+#include <sys/socket.h>
+#include <sys/epoll.h>
+
+#include <arpa/inet.h>
 
 #define OPTSTRING "hi:p:r:c:q:"
 #define N_ROOMS_DEFAULT 16
@@ -20,6 +24,7 @@ void print_help(const char *name) {
         " -q <integer>\n\tsocket queue length (default is %d)\n",
         name, N_ROOMS_DEFAULT, N_CLIENTS_DEFAULT, QUEUE_LEN_DEFAULT);
 }
+
 class Server {
     size_t nRooms;
     size_t nClients;
@@ -28,6 +33,8 @@ class Server {
 
     int socketFd;
 
+    int epollFd;
+
 public:
     Server(sockaddr_in *addr, size_t nRooms, size_t nClients, size_t queueLen) {
         this -> nRooms = nRooms;
@@ -35,6 +42,7 @@ public:
         this -> address = addr;
 
         this -> socketFd = socket(AF_INET, SOCK_STREAM, 0);
+        this -> epollFd = epoll_create(nClients);
 
         int one = 1;
         setsockopt(this -> socketFd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
@@ -47,6 +55,29 @@ public:
 
     ~Server() {
         close(this -> socketFd);
+    }
+
+    void listenLoop() {
+        struct sockaddr *addr;
+        socklen_t addrlen;
+        while(1) {
+            // TODO: register new user, ask him for username and add him to some array or vector
+            int newFd = accept(this -> socketFd, addr, &addrlen);
+            struct epoll_event ev = {.events = EPOLLIN, .data= {.u64 = (uint64_t)newFd}};
+            epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev);
+        }
+    }
+
+    void localLoop() {
+        struct epoll_event incomming;
+        char buf[256];
+        while(1) {
+            epoll_wait(this->epollFd, &incomming, 1, -1);
+            if (read(incomming.data.u64, buf, 256) > 0) {
+                printf("%ld sent: %s\n", incomming.data.u64, buf);
+            }
+            write(incomming.data.u64, "leave me alone", 14);
+        }
     }
 };
 
@@ -118,6 +149,10 @@ int main(int argc, char *argv[]) {
     addr.sin_addr.s_addr = ipaddr;
 
     Server s(&addr, rooms, clients, queueLen);
+    std::thread mainLoop(&Server::listenLoop, s);
+    s.localLoop();
+
+    mainLoop.join();
 
     return 0;
 }
