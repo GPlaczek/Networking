@@ -3,6 +3,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <thread>
+#include <vector>
+#include <string>
 
 #include <sys/socket.h>
 #include <sys/epoll.h>
@@ -25,6 +27,13 @@ void print_help(const char *name) {
         name, N_ROOMS_DEFAULT, N_CLIENTS_DEFAULT, QUEUE_LEN_DEFAULT);
 }
 
+class Client {
+    public: 
+        std::string username;
+        sockaddr_in *address;
+        int socketDesc;
+};
+
 class Server {
     size_t nRooms;
     size_t nClients;
@@ -34,6 +43,22 @@ class Server {
     int socketFd;
 
     int epollFd;
+    std::vector <Client*> clients;
+
+    void registerUser(int newFd, sockaddr *addr) {
+        struct epoll_event ev = {.events = EPOLLIN, .data= {.u64 = (uint64_t)newFd}};
+        epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev);
+
+        Client *client = new Client;
+        client -> socketDesc = newFd;
+        client -> address = (sockaddr_in*)addr;
+        
+        char buf[256];
+        if (read(newFd, buf, 256) > 0) {
+            client -> username = buf;
+        }
+        clients.push_back(client);
+    }
 
 public:
     Server(sockaddr_in *addr, size_t nRooms, size_t nClients, size_t queueLen) {
@@ -63,8 +88,7 @@ public:
         while(1) {
             // TODO: register new user, ask him for username and add him to some array or vector
             int newFd = accept(this -> socketFd, addr, &addrlen);
-            struct epoll_event ev = {.events = EPOLLIN, .data= {.u64 = (uint64_t)newFd}};
-            epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev);
+            registerUser(newFd, addr);
         }
     }
 
@@ -76,6 +100,7 @@ public:
             if (read(incomming.data.u64, buf, 256) > 0) {
                 printf("%ld sent: %s\n", incomming.data.u64, buf);
             }
+            memset(buf, 0, 256);
             write(incomming.data.u64, "leave me alone", 14);
         }
     }
@@ -105,7 +130,7 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Invalid port\n");
                     exit(1);
                 }
-                port = htons(port);
+                // port = htons(port);
                 pPort = 1;
                 break;
             case 'r':
