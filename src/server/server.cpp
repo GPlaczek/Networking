@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 #include <string>
+#include <algorithm>
 #include <time.h>
 
 #include <sys/socket.h>
@@ -72,21 +73,15 @@ class Server {
     int socketFd;
 
     int epollFd;
+    // TODO: protect this vector with a mutex
     std::vector <Client*> clients;
 
-    void registerUser(int newFd, sockaddr *addr) {
-        struct epoll_event ev = {.events = EPOLLIN, .data= {.u64 = (uint64_t)newFd}};
-        epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev);
-
-        Client *client = new Client;
-        client -> socketDesc = newFd;
-        client -> address = (sockaddr_in*)addr;
-        
-        char buf[256];
-        if (read(newFd, buf, 256) > 0) {
-            client -> username = buf;
-        }
-        clients.push_back(client);
+    // TODO: if clients was an unordered map, this function could be much faster
+    void removeUser(Client *user) {
+        DEBUG_PRINT(GREEN, "Removing user %s from the server", user->username.c_str());
+        this -> clients.erase(std::remove(this->clients.begin(), this->clients.end(), user), this->clients.end());
+        epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL);
+        delete user;
     }
 
 public:
@@ -120,22 +115,50 @@ public:
             DEBUG_PRINT(RED, "Waiting for new connections");
             int newFd = accept(this -> socketFd, addr, &addrlen);
             DEBUG_PRINT(RED, "Accepted a new connection");
-            registerUser(newFd, addr);
-            DEBUG_PRINT(RED, "New user registered");
+
+            Client *client = new Client;
+            client -> socketDesc = newFd;
+            client -> address = (sockaddr_in*)addr;
+
+            DEBUG_PRINT(RED, "Adding new connection to epoll");
+            struct epoll_event ev = {
+                .events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP,
+                .data= {.ptr = client}
+            };
+            epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev);
+
+            DEBUG_PRINT(RED, "Adding new client to clients vector");
+            this->clients.push_back(client);
         }
     }
 
     void localLoop() {
         struct epoll_event incomming;
         char buf[256];
+        Client *client; 
         while(1) {
-            DEBUG_PRINT(BLUE, "Polling on existing connections");
-            epoll_wait(this->epollFd, &incomming, 1, -1);
-            if (read(incomming.data.u64, buf, 256) > 0) {
-                PPRINTF(BLUE, "%ld sent: %s", incomming.data.u64, buf);
-            }
             memset(buf, 0, 256);
-            write(incomming.data.u64, "leave me alone", 14);
+
+            // DEBUG_PRINT(BLUE, "Polling on existing connections");
+            epoll_wait(this->epollFd, &incomming, 1, -1);
+
+            client = ((Client *)incomming.data.ptr);
+
+            if (incomming.events & EPOLLRDHUP) {
+                PPRINTF(BLUE, "Client %s closed the connection", client->username.c_str());
+                this->removeUser(client);
+            } else if (read(client->socketDesc, buf, 256) > 0) {
+                if (client->username.empty()) {
+                    DEBUG_PRINT(BLUE, "User %d registered as %s", client->socketDesc, buf);
+                    client->username = buf;
+                } else {
+                    PPRINTF(BLUE, "User %s sent: %s", client->username.c_str(), buf);
+                }
+            } else {
+                fprintf(stderr, "Possible missing epoll event");
+                exit(1);
+            }
+            write(client->socketDesc, "leave me alone", 14);
         }
     }
 };
