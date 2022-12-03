@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 #include <string>
+#include <time.h>
 
 #include <sys/socket.h>
 #include <sys/epoll.h>
@@ -16,6 +17,24 @@
 #define N_CLIENTS_DEFAULT 64
 #define QUEUE_LEN_DEFAULT 32
 
+#define RED 31
+#define GREEN 32
+#define YELLOW 33
+#define BLUE 34
+
+// This will break if someone wants to use some other variable called __buffer in this macro
+#define PPRINTF(COLOR, FORMAT, args...) ({\
+    char __buffer[9];\
+    get_time(__buffer);\
+    printf("\033[%d;1m[%s]\033[0m \033[35;1m[%s]\033[0m " FORMAT "\n", COLOR, __buffer, __func__, ##args);\
+})
+
+#ifdef LOG
+#define DEBUG_PRINT(COLOR, FORMAT, ...) PPRINTF(COLOR, FORMAT, ##__VA_ARGS__)
+#else
+#define DEBUG_PRINT(...) do {} while (0)
+#endif
+
 void print_help(const char *name) {
     printf("server - Taboo game server\n"
         "Usage: %s [options]\n\nOptions:\n"
@@ -25,6 +44,16 @@ void print_help(const char *name) {
         " -c <integer>\n\tmax number of clients (default is %d)\n"
         " -q <integer>\n\tsocket queue length (default is %d)\n",
         name, N_ROOMS_DEFAULT, N_CLIENTS_DEFAULT, QUEUE_LEN_DEFAULT);
+}
+
+void get_time(char *buf) {
+    // TODO: handle errors here
+    time_t timer;\
+    struct tm *tm_info;
+
+    timer = time(NULL);
+    tm_info = localtime(&timer);
+    strftime(buf, 9, "%H:%M:%S", tm_info);
 }
 
 class Client {
@@ -87,8 +116,11 @@ public:
         socklen_t addrlen;
         while(1) {
             // TODO: register new user, ask him for username and add him to some array or vector
+            DEBUG_PRINT(RED, "Waiting for new connections");
             int newFd = accept(this -> socketFd, addr, &addrlen);
+            DEBUG_PRINT(RED, "Accepted a new connection");
             registerUser(newFd, addr);
+            DEBUG_PRINT(RED, "New user registered");
         }
     }
 
@@ -96,9 +128,10 @@ public:
         struct epoll_event incomming;
         char buf[256];
         while(1) {
+            DEBUG_PRINT(BLUE, "Polling on existing connections");
             epoll_wait(this->epollFd, &incomming, 1, -1);
             if (read(incomming.data.u64, buf, 256) > 0) {
-                printf("%ld sent: %s\n", incomming.data.u64, buf);
+                PPRINTF(BLUE, "%ld sent: %s", incomming.data.u64, buf);
             }
             memset(buf, 0, 256);
             write(incomming.data.u64, "leave me alone", 14);
@@ -173,8 +206,11 @@ int main(int argc, char *argv[]) {
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = ipaddr;
 
+    DEBUG_PRINT(YELLOW, "Creating Server instance");
     Server s(&addr, rooms, clients, queueLen);
+    DEBUG_PRINT(YELLOW, "Entering server listenner loop");
     std::thread mainLoop(&Server::listenLoop, s);
+    DEBUG_PRINT(YELLOW, "Entering server main loop");
     s.localLoop();
 
     mainLoop.join();
