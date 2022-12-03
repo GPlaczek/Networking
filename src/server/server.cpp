@@ -115,6 +115,7 @@ public:
         struct sockaddr *addr;
         socklen_t addrlen;
         while(1) {
+            addr = new sockaddr;
             // TODO: register new user, ask him for username and add him to some array or vector
             DEBUG_PRINT(RED, "Waiting for new connections");
             int newFd = accept(this -> socketFd, addr, &addrlen);
