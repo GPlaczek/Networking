@@ -62,6 +62,39 @@ class Client {
         std::string username;
         sockaddr_in *address;
         int socketDesc;
+        //assigned room?
+};
+
+class Room {
+    int epollFd;
+    int maxPlayers, nRounds, roundTime;
+    Client* describer;
+    // std::vector <Client*> clients;
+    public:
+        std::thread threadFd;
+
+        Room(int maxPlayers, int nRounds, int roundTime, Client* describer) {
+            this -> maxPlayers = maxPlayers;
+            this -> nRounds = nRounds;
+            this -> roundTime = roundTime;
+            // this -> threadFd = std::move(threadFd);
+            this -> describer = describer;
+
+            this -> epollFd = epoll_create(maxPlayers);
+        }
+
+        ~Room() {
+            close(this -> epollFd);
+            threadFd.join();
+        }
+
+
+        void roomLoop() {
+            while (1)
+            {
+            
+            }
+        }
 };
 
 class Server {
@@ -75,6 +108,8 @@ class Server {
     int epollFd;
     // TODO: protect this vector with a mutex
     std::vector <Client*> clients;
+    std::vector <Room> rooms;
+    std::vector <std::thread> roomsThread;
 
     // TODO: if clients was an unordered map, this function could be much faster
     void removeUser(Client *user) {
@@ -151,6 +186,12 @@ public:
                 if (client->username.empty()) {
                     DEBUG_PRINT(BLUE, "User %d registered as %s", client->socketDesc, buf);
                     client->username = buf;
+                } else if (strcmp(buf, "create")) {
+                    Room room(3, 2, 2, client);
+                    rooms.push_back(room);
+                    std::thread roomTh(&Room::roomLoop, room);
+                    roomsThread.push_back(std::move(roomTh));
+                    room.threadFd = std::move(roomTh);
                 } else {
                     PPRINTF(BLUE, "User %s sent: %s", client->username.c_str(), buf);
                 }
