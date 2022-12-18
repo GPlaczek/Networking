@@ -77,9 +77,7 @@ class Room {
             this -> maxPlayers = maxPlayers;
             this -> nRounds = nRounds;
             this -> roundTime = roundTime;
-            // this -> threadFd = std::move(threadFd);
             this -> describer = describer;
-
             this -> epollFd = epoll_create(maxPlayers);
         }
 
@@ -88,12 +86,11 @@ class Room {
             threadFd.join();
         }
 
-
         void roomLoop() {
-            while (1)
-            {
+            // while (1)
+            // {
             
-            }
+            // }
         }
 };
 
@@ -108,8 +105,6 @@ class Server {
     int epollFd;
     // TODO: protect this vector with a mutex
     std::vector <Client*> clients;
-    std::vector <Room> rooms;
-    std::vector <std::thread> roomsThread;
 
     // TODO: if clients was an unordered map, this function could be much faster
     void removeUser(Client *user) {
@@ -120,6 +115,8 @@ class Server {
     }
 
 public:
+    std::vector <Room*> rooms;
+
     Server(sockaddr_in *addr, size_t nRooms, size_t nClients, size_t queueLen) {
         this -> nRooms = nRooms;
         this -> nClients = nClients;
@@ -186,12 +183,11 @@ public:
                 if (client->username.empty()) {
                     DEBUG_PRINT(BLUE, "User %d registered as %s", client->socketDesc, buf);
                     client->username = buf;
-                } else if (strcmp(buf, "create")) {
-                    Room room(3, 2, 2, client);
-                    rooms.push_back(room);
+                } else if (!strcmp(buf, "create")) {
+                    Room *room = new Room(3, 2, 2, client);
+                    this->rooms.push_back(room);
                     std::thread roomTh(&Room::roomLoop, room);
-                    roomsThread.push_back(std::move(roomTh));
-                    room.threadFd = std::move(roomTh);
+                    room->threadFd = std::move(roomTh);
                 } else {
                     PPRINTF(BLUE, "User %s sent: %s", client->username.c_str(), buf);
                 }
@@ -279,6 +275,10 @@ int main(int argc, char *argv[]) {
     s.localLoop();
 
     mainLoop.join();
+
+    for(int i = 0; i < s.rooms.size(); i++) {
+        delete s.rooms[i];
+    }
 
     return 0;
 }
