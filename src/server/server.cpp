@@ -13,6 +13,9 @@
 
 #include <arpa/inet.h>
 
+#include "client.hpp"
+#include "room.hpp"
+
 #define OPTSTRING "hi:p:r:c:q:"
 #define N_ROOMS_DEFAULT 16
 #define N_CLIENTS_DEFAULT 64
@@ -56,46 +59,6 @@ void get_time(char *buf) {
     tm_info = localtime(&timer);
     strftime(buf, 9, "%H:%M:%S", tm_info);
 }
-
-class Client {
-    public: 
-        std::string username;
-        sockaddr_in *address;
-        int socketDesc;
-        //assigned room?
-        ~Client() {
-            delete this->address;
-        }
-};
-
-class Room {
-    int epollFd;
-    int maxPlayers, nRounds, roundTime;
-    Client* describer;
-    // std::vector <Client*> clients;
-    public:
-        std::thread threadFd;
-
-        Room(int maxPlayers, int nRounds, int roundTime, Client* describer) {
-            this -> maxPlayers = maxPlayers;
-            this -> nRounds = nRounds;
-            this -> roundTime = roundTime;
-            this -> describer = describer;
-            this -> epollFd = epoll_create(maxPlayers);
-        }
-
-        ~Room() {
-            close(this -> epollFd);
-            threadFd.join();
-        }
-
-        void roomLoop() {
-            // while (1)
-            // {
-            
-            // }
-        }
-};
 
 class Server {
     size_t nRooms;
