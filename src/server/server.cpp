@@ -63,6 +63,9 @@ class Client {
         sockaddr_in *address;
         int socketDesc;
         //assigned room?
+        ~Client() {
+            delete this->address;
+        }
 };
 
 class Room {
