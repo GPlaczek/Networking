@@ -5,6 +5,8 @@
 #include <thread>
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 Room::Room(int maxPlayers, int nRounds, int roundTime, Client* describer) {
     this -> maxPlayers = maxPlayers;
@@ -13,10 +15,21 @@ Room::Room(int maxPlayers, int nRounds, int roundTime, Client* describer) {
     this -> describer = describer;
     this -> nPlayers = 0;
     this -> epollFd = epoll_create(maxPlayers);
+    int pp[2];
+    pipe2(pp, O_DIRECT);
+    this -> __pipeRead = pp[0];
+    this -> pipeWrite = pp[1];
+    pipe2(pp, O_DIRECT);
+    this -> pipeRead = pp[0];
+    this -> __pipeWrite = pp[1];
 }
 
 Room::~Room() {
     close(this -> epollFd);
+    close(this -> __pipeRead);
+    close(this -> __pipeWrite);
+    close(this -> pipeRead);
+    close(this -> pipeWrite);
     threadFd.join();
 }
 
@@ -32,6 +45,7 @@ void Room::roomLoop() {
         if (incomming.events & EPOLLRDHUP) {
             PPRINTF(this->logger, YELLOW, "Client %s closed the connection", client->username.c_str());
             this->unassign(client);
+            dprintf(this->__pipeWrite, "remove %p", client);
         } else if (incomming.events & EPOLLERR) {
             PPRINTF(this->logger, YELLOW, "EROR");
         } else {
