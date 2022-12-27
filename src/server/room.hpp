@@ -1,6 +1,8 @@
 #pragma once
 
 #include "client.hpp"
+#include "log.hpp"
+
 #include <thread>
 
 class Room {
@@ -8,6 +10,7 @@ class Room {
     int maxPlayers, nRounds, roundTime;
     int nPlayers;
     Client *describer;
+    Log logger;
 public:
     std::thread threadFd;
     Room(int maxPlayers, int nRounds, int roundTime, Client *describer);

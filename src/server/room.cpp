@@ -1,5 +1,6 @@
 #include "client.hpp"
 #include "room.hpp"
+#include "log.hpp"
 
 #include <thread>
 #include <sys/epoll.h>
@@ -29,21 +30,26 @@ void Room::roomLoop() {
         client = ((Client *)incomming.data.ptr);
 
         if (incomming.events & EPOLLRDHUP) {
-            printf("Client %s closed the connection\n", client->username.c_str());
+            PPRINTF(this->logger, YELLOW, "Client %s closed the connection", client->username.c_str());
             this->unassign(client);
-        } else if (read(client->socketDesc, buf, 256) > 0) {
-            printf("User %s send %s to the second thread\n", client->username.c_str(), buf);
+        } else if (incomming.events & EPOLLERR) {
+            PPRINTF(this->logger, YELLOW, "EROR");
+        } else {
+            read(client->socketDesc, buf, 256);
+            PPRINTF(this->logger, YELLOW, "User %s send %s to the second thread", client->username.c_str(), buf);
         }
     }
 }
 
 void Room::assign(Client *client) {
-    static struct epoll_event ev = {
+    struct epoll_event ev = {
         .events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP,
         .data= {.ptr = client}
     };
-    epoll_ctl(this->epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev);
-    this -> nPlayers++;
+    if (epoll_ctl(this->epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev) == 0) {
+        this -> nPlayers++;
+        PPRINTF(this->logger, YELLOW, "Client %s assigned", client->username.c_str());
+    }
 }
 
 void Room::unassign(Client *client) {
