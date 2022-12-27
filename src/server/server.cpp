@@ -6,7 +6,6 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <time.h>
 
 #include <sys/socket.h>
 #include <sys/epoll.h>
@@ -15,29 +14,12 @@
 
 #include "client.hpp"
 #include "room.hpp"
+#include "log.hpp"
 
 #define OPTSTRING "hi:p:r:c:q:"
 #define N_ROOMS_DEFAULT 16
 #define N_CLIENTS_DEFAULT 64
 #define QUEUE_LEN_DEFAULT 32
-
-#define RED 31
-#define GREEN 32
-#define YELLOW 33
-#define BLUE 34
-
-// This will break if someone wants to use some other variable called __buffer in this macro
-#define PPRINTF(COLOR, FORMAT, args...) ({\
-    char __buffer[9];\
-    get_time(__buffer);\
-    printf("\033[%d;1m[%s]\033[0m \033[35;1m[%s]\033[0m " FORMAT "\n", COLOR, __buffer, __func__, ##args);\
-})
-
-#ifdef LOG
-#define DEBUG_PRINT(COLOR, FORMAT, ...) PPRINTF(COLOR, FORMAT, ##__VA_ARGS__)
-#else
-#define DEBUG_PRINT(...) do {} while (0)
-#endif
 
 void print_help(const char *name) {
     printf("server - Taboo game server\n"
@@ -50,16 +32,6 @@ void print_help(const char *name) {
         name, N_ROOMS_DEFAULT, N_CLIENTS_DEFAULT, QUEUE_LEN_DEFAULT);
 }
 
-void get_time(char *buf) {
-    // TODO: handle errors here
-    time_t timer;\
-    struct tm *tm_info;
-
-    timer = time(NULL);
-    tm_info = localtime(&timer);
-    strftime(buf, 9, "%H:%M:%S", tm_info);
-}
-
 class Server {
     size_t nRooms;
     size_t nClients;
@@ -67,6 +39,7 @@ class Server {
     sockaddr_in *address;
 
     int socketFd;
+    Log logger;
 
     int epollFd;
     // TODO: protect this vector with a mutex
@@ -74,7 +47,7 @@ class Server {
 
     // TODO: if clients was an unordered map, this function could be much faster
     void removeUser(Client *user) {
-        DEBUG_PRINT(GREEN, "Removing user %s from the server", user->username.c_str());
+        PPRINTF(this->logger, GREEN, "Removing user %s from the server", user->username.c_str());
         this -> clients.erase(std::remove(this->clients.begin(), this->clients.end(), user), this->clients.end());
         epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL);
         delete user;
@@ -104,28 +77,33 @@ public:
         close(this -> socketFd);
     }
 
+    void assignToRoom(Client *client, Room *room) {
+        epoll_ctl(this->epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
+        room->assign(client);
+    }
+
     void listenLoop() {
         struct sockaddr *addr;
         socklen_t addrlen;
         while(1) {
             addr = new sockaddr;
             // TODO: register new user, ask him for username and add him to some array or vector
-            DEBUG_PRINT(RED, "Waiting for new connections");
+            PPRINTF(this->logger, RED, "Waiting for new connections");
             int newFd = accept(this -> socketFd, addr, &addrlen);
-            DEBUG_PRINT(RED, "Accepted a new connection");
+            PPRINTF(this->logger, RED, "Accepted a new connection");
 
             Client *client = new Client;
             client -> socketDesc = newFd;
             client -> address = (sockaddr_in*)addr;
 
-            DEBUG_PRINT(RED, "Adding new connection to epoll");
+            PPRINTF(this->logger, RED, "Adding new connection to epoll");
             struct epoll_event ev = {
                 .events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP,
                 .data= {.ptr = client}
             };
             epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev);
 
-            DEBUG_PRINT(RED, "Adding new client to clients vector");
+            PPRINTF(this->logger, RED, "Adding new client to clients vector");
             this->clients.push_back(client);
         }
     }
@@ -143,20 +121,36 @@ public:
             client = ((Client *)incomming.data.ptr);
 
             if (incomming.events & EPOLLRDHUP) {
-                PPRINTF(BLUE, "Client %s closed the connection", client->username.c_str());
+                PPRINTF(this->logger, BLUE, "Client %s closed the connection", client->username.c_str());
                 this->removeUser(client);
             } else if (read(client->socketDesc, buf, 256) > 0) {
                 if (client->username.empty()) {
-                    DEBUG_PRINT(BLUE, "User %d registered as %s", client->socketDesc, buf);
+                    PPRINTF(this->logger, BLUE, "User %d registered as %s", client->socketDesc, buf);
                     client->username = buf;
-                } else if (!strcmp(buf, "create")) {
+                    continue;
+                }
+                char *command;
+                char *ptr = strchrnul(buf, ' ');
+                int len = ptr - buf;
+                command = new char[len];
+                memcpy(command, buf, len);
+                command[len] = 0;
+                if (!strcmp(command, "create")) {
+                    PPRINTF(this->logger, RED, "User %s creates a new room", client->username.c_str());
                     Room *room = new Room(3, 2, 2, client);
                     this->rooms.push_back(room);
                     std::thread roomTh(&Room::roomLoop, room);
                     room->threadFd = std::move(roomTh);
+                } else if (!strcmp(command, "join")) {
+                    int room;
+                    sscanf(ptr, "%d", &room);
+                    PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
+                    this->rooms.at(room)->assign(client);
+                    epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
                 } else {
-                    PPRINTF(BLUE, "User %s sent: %s", client->username.c_str(), buf);
+                    PPRINTF(this->logger, BLUE, "User %s sent: %s", client->username.c_str(), buf);
                 }
+                delete [] command;
             } else {
                 fprintf(stderr, "Possible missing epoll event");
                 exit(1);
@@ -233,11 +227,8 @@ int main(int argc, char *argv[]) {
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = ipaddr;
 
-    DEBUG_PRINT(YELLOW, "Creating Server instance");
     Server s(&addr, rooms, clients, queueLen);
-    DEBUG_PRINT(YELLOW, "Entering server listenner loop");
-    std::thread mainLoop(&Server::listenLoop, s);
-    DEBUG_PRINT(YELLOW, "Entering server main loop");
+    std::thread mainLoop(&Server::listenLoop, std::ref(s));
     s.localLoop();
 
     mainLoop.join();
