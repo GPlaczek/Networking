@@ -29,7 +29,7 @@ char *get_command_name(char *buf, char **ptr) {
     char *command;
     *ptr = strchrnul(buf, ' ');
     int len = *ptr - buf;
-    command = new char[len];
+    command = new char[len+1];
     memcpy(command, buf, len);
     command[len] = 0;
     return command;
@@ -64,6 +64,7 @@ class Server {
         PPRINTF(this->logger, GREEN, "Removing user %s from the server", user->username.c_str());
         this -> clients.erase(std::remove(this->clients.begin(), this->clients.end(), user), this->clients.end());
         epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL);
+        close(user -> socketDesc);
         delete user;
     }
 
@@ -83,6 +84,8 @@ public:
 
         if (bind(this -> socketFd, (sockaddr*)(this -> address), sizeof(*(this -> address)))) {
             perror("Could not bind to the given address");
+            close(this -> socketFd);
+            exit(1);
         }
         listen(this -> socketFd, queueLen);
     }
@@ -105,6 +108,10 @@ public:
             // TODO: register new user, ask him for username and add him to some array or vector
             PPRINTF(this->logger, RED, "Waiting for new connections");
             int newFd = accept(this -> socketFd, addr, &addrlen);
+            if (newFd == -1) {
+                perror("Too many open files");
+                exit(1);
+            }
             PPRINTF(this->logger, RED, "Accepted a new connection");
 
             Client *client = new Client;
@@ -118,7 +125,7 @@ public:
             s1->src = Source::CLIENT;
 
             struct epoll_event ev = {
-                .events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP,
+                .events = EPOLLIN | EPOLLRDHUP,
                 .data= {.ptr = s1}
             };
 
@@ -176,7 +183,7 @@ public:
 
                         // epoll_event for reading from room pipe
                         struct epoll_event ev = {
-                            .events = EPOLLIN | EPOLLERR,
+                            .events = EPOLLIN,
                             .data= {.ptr = sr}
                         };
 
@@ -243,7 +250,6 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Invalid port\n");
                     exit(1);
                 }
-                // port = htons(port);
                 pPort = 1;
                 break;
             case 'r':
