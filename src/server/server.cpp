@@ -162,6 +162,7 @@ public:
                         // If the user didn't give a name, the first message he sends is his name
                         PPRINTF(this->logger, BLUE, "User %d registered as %s", client->socketDesc, buf);
                         client->username = buf;
+                        client->isAssigned = false;
                         continue;
                     }
                     command = get_command_name(buf, &ptr);
@@ -175,6 +176,7 @@ public:
                         this->rooms.push_back(room);
                         std::thread roomTh(&Room::roomLoop, room);
                         room->threadFd = std::move(roomTh);
+                        room->assign(client);
                         // for some reason declaring Sender as not a pointer breaks it
                         // TODO: free this pointer after removing a room
                         struct Sender *sr = new Sender;
@@ -188,16 +190,23 @@ public:
                         };
 
                         epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev);
+                        write(client->socketDesc, "Room successfully created\n", 27);
                     } else if (!strcmp(command, "join")) {
                         // join a room
                         int room;
                         sscanf(ptr, "%d", &room);
                         PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
-                        try {
-                            this->rooms.at(room)->assign(client);
-                            epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
-                        } catch (...) {
-                            write(client->socketDesc, "No such room", 12);
+                        if (client->isAssigned) {
+                            PPRINTF(this->logger, BLUE, "User %s is already assigned to a room", client->username.c_str());
+                            write(client->socketDesc, "You are already assigned to a room\n", 27);
+                        } else {
+                            try {
+                                this->rooms.at(room)->assign(client);
+                                epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
+                                write(client->socketDesc, "Successfully joined to room\n", 29);
+                            } catch (...) {
+                                write(client->socketDesc, "No such room\n", 14);
+                            }
                         }
                     } else {
                         PPRINTF(this->logger, BLUE, "User %s sent: %s", client->username.c_str(), buf);
@@ -207,7 +216,7 @@ public:
                     fprintf(stderr, "Possible missing epoll event");
                     exit(1);
                 }
-                write(client->socketDesc, "leave me alone", 14);
+                write(client->socketDesc, "leave me alone\n", 16);
             } else if (sender->src == Source::ROOM) {
                 // for messages sent from room pipes
                 Room *room = sender->data.room;
