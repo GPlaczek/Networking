@@ -139,6 +139,7 @@ public:
     void localLoop() {
         struct epoll_event incomming;
         char buf[256];
+        std::string message;
         char *ptr, *command;
         Sender *sender; 
         while(1) {
@@ -162,7 +163,7 @@ public:
                         // If the user didn't give a name, the first message he sends is his name
                         PPRINTF(this->logger, BLUE, "User %d registered as %s", client->socketDesc, buf);
                         client->username = buf;
-                        client->isAssigned = false;
+                        client->assignedRoom = -1;
                         continue;
                     }
                     command = get_command_name(buf, &ptr);
@@ -190,20 +191,23 @@ public:
                         };
 
                         epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev);
-                        write(client->socketDesc, "Room successfully created\n", 27);
+                        message = "Room " + std::to_string(client->assignedRoom) + " successfully created\n";                       
+                        write(client->socketDesc, message.c_str(), message.length() + 1);
                     } else if (!strcmp(command, "join")) {
                         // join a room
                         int room;
                         sscanf(ptr, "%d", &room);
                         PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
-                        if (client->isAssigned) {
-                            PPRINTF(this->logger, BLUE, "User %s is already assigned to a room", client->username.c_str());
-                            write(client->socketDesc, "You are already assigned to a room\n", 27);
+                        if (client->assignedRoom != -1) {
+                            PPRINTF(this->logger, BLUE, "User %s is already assigned to a room %i", client->username.c_str(), client->assignedRoom);
+                            message = "You are already assigned to the room " + std::to_string(client->assignedRoom) + "\n";
+                            write(client->socketDesc, message.c_str(), message.length() + 1);
                         } else {
                             try {
                                 this->rooms.at(room)->assign(client);
                                 epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
-                                write(client->socketDesc, "Successfully joined to room\n", 29);
+                                message = "Successfully joined the room " + std::to_string(room) + "\n";
+                                write(client->socketDesc, message.c_str(), message.length() + 1);
                             } catch (...) {
                                 write(client->socketDesc, "No such room\n", 14);
                             }

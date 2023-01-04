@@ -8,7 +8,6 @@ public:
     std::string username;
     sockaddr_in *address;
     int socketDesc;
-    // TODO: change isAssigned to room identifier
-    int isAssigned;
+    int assignedRoom;
     ~Client();
 };
