@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.12)
 
 project(Networking)
 
-add_executable(server src/server/server.cpp)
+file(GLOB SERVER_SRC ${PROJECT_SOURCE_DIR}/src/server/*.cpp)
+
+include_directories(${PROJECT_SOURCE_DIR}/src/server)
+
+add_executable(server ${SERVER_SRC})
 add_executable(client src/bin/client.cpp)
 
 target_compile_options(client PRIVATE -fPIC)
