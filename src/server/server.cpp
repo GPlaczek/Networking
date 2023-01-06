@@ -170,30 +170,49 @@ public:
 
                     if (!strcmp(command, "create")) {
                         // create a new room
-                        PPRINTF(this->logger, RED, "User %s creates a new room", client->username.c_str());
+                        if (ptr && !ptr[0]) {
+                            PPRINTF(this->logger, RED, "User %s did not entered room name", client->username.c_str());
+                            message = "Please enter room name after 'create' command\n";
+                            write(client->socketDesc, message.c_str(), message.length() + 1);
+                        } else {
+                            //check if room name is unique
+                            bool unique = true;
+                            for (int i = 0; i < this->rooms.size(); i++) {
+                                if (this->rooms[i]->name == ptr) {
+                                    unique = false;
+                                    PPRINTF(this->logger, RED, "Room name %s is not unique", ptr);
+                                    message = "Please enter different room name. This one is not unique\n";
+                                    write(client->socketDesc, message.c_str(), message.length() + 1);
+                                    break;
+                                }
+                            }
+                            if (unique) {
+                                PPRINTF(this->logger, RED, "User %s creates a new room", client->username.c_str());
+                                Room *room = new Room(3, 2, 2, client);
 
-                        Room *room = new Room(3, 2, 2, client);
+                                this->rooms.push_back(room);
+                                std::thread roomTh(&Room::roomLoop, room);
+                                room->threadFd = std::move(roomTh);
+                                room->assign(client);
+                                room->name = ptr;
+                                epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
+                                // for some reason declaring Sender as not a pointer breaks it
+                                // TODO: free this pointer after removing a room
+                                struct Sender *sr = new Sender;
+                                sr->data = {.room=room};
+                                sr->src = Source::ROOM;
 
-                        this->rooms.push_back(room);
-                        std::thread roomTh(&Room::roomLoop, room);
-                        room->threadFd = std::move(roomTh);
-                        room->assign(client);
-                        epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
-                        // for some reason declaring Sender as not a pointer breaks it
-                        // TODO: free this pointer after removing a room
-                        struct Sender *sr = new Sender;
-                        sr->data = {.room=room};
-                        sr->src = Source::ROOM;
+                                // epoll_event for reading from room pipe
+                                struct epoll_event ev = {
+                                    .events = EPOLLIN,
+                                    .data= {.ptr = sr}
+                                };
 
-                        // epoll_event for reading from room pipe
-                        struct epoll_event ev = {
-                            .events = EPOLLIN,
-                            .data= {.ptr = sr}
-                        };
-
-                        epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev);
-                        message = "Room " + std::to_string(client->assignedRoom) + " successfully created\n";                       
-                        write(client->socketDesc, message.c_str(), message.length() + 1);
+                                epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev);
+                                message = "Room " + room->name + " successfully created\n";                       
+                                write(client->socketDesc, message.c_str(), message.length() + 1);
+                            }
+                        }
                     } else if (!strcmp(command, "join")) {
                         // join a room
                         int room;
