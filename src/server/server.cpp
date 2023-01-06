@@ -178,6 +178,7 @@ public:
                         std::thread roomTh(&Room::roomLoop, room);
                         room->threadFd = std::move(roomTh);
                         room->assign(client);
+                        epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
                         // for some reason declaring Sender as not a pointer breaks it
                         // TODO: free this pointer after removing a room
                         struct Sender *sr = new Sender;
