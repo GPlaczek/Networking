@@ -9,6 +9,7 @@
 
 #include <sys/socket.h>
 #include <sys/epoll.h>
+#include <netinet/tcp.h>
 
 #include <arpa/inet.h>
 
@@ -79,8 +80,14 @@ public:
         this -> socketFd = socket(AF_INET, SOCK_STREAM, 0);
         this -> epollFd = epoll_create(nClients);
 
-        int one = 1;
-        setsockopt(this -> socketFd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+        int sockopt = 1;
+        setsockopt(this -> socketFd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
+        setsockopt(this -> socketFd, SOL_SOCKET, SO_KEEPALIVE, &sockopt, sizeof(sockopt));
+        setsockopt(this -> socketFd, SOL_TCP, TCP_KEEPINTVL, &sockopt, sizeof(sockopt));
+        sockopt = 5;
+        setsockopt(this -> socketFd, SOL_TCP, TCP_KEEPCNT, &sockopt, sizeof(sockopt));
+        sockopt = 10;
+        setsockopt(this -> socketFd, SOL_TCP, TCP_KEEPIDLE, &sockopt, sizeof(sockopt));
 
         if (bind(this -> socketFd, (sockaddr*)(this -> address), sizeof(*(this -> address)))) {
             perror("Could not bind to the given address");
