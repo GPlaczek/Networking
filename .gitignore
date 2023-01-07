@@ -59,4 +59,4 @@ test/test_runner
 
 ## vsCode
 
-./.vscode
+.vscode/

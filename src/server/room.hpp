@@ -15,6 +15,7 @@ class Room {
 public:
     int pipeRead, pipeWrite; // server pipe ends
     std::thread threadFd;
+    std::string name;
     Room(int maxPlayers, int nRounds, int roundTime, Client *describer);
     ~Room();
     void roomLoop();
