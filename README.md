@@ -12,7 +12,7 @@ Server is responsible for creating game rooms and accept connection requests fro
 
 To setup the cmake environment use:
 ```
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_AUTOMOC=1
 ```
 
 If you intent to use this repository for development, consider adding `-DCMAKE_EXPORT_COMPILE_COMMANDS=1` to the command above.
