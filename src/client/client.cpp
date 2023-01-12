@@ -1,3 +1,5 @@
+#include "gui.hpp"
+
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -6,12 +8,11 @@
 #include <cstdio>
 #include <string.h>
 #include <QApplication>
-#include <QLabel>
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-    QLabel hello("Hello world QT");
-    hello.show();
+    Window window;
+    window.show();
     app.exec();
 
     if (argc < 3) {
