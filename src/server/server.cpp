@@ -149,9 +149,9 @@ public:
             int room;
             sscanf(args, "%d", &room);
             PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
-            if (client->assignedRoom != -1) {
+            if (client->assignedRoom != NULL) {
                 PPRINTF(this->logger, BLUE, "User %s is already assigned to a room %i", client->username.c_str(), client->assignedRoom);
-                message = "You are already assigned to the room " + std::to_string(client->assignedRoom) + "\n";
+                message = "You are already assigned to the room " + client->assignedRoom->name + "\n";
                 write(client->socketDesc, message.c_str(), message.length() + 1);
             } else {
                 try {
@@ -165,6 +165,19 @@ public:
             }
         } else if (!strcmp(cmd, "msg")) {
             PPRINTF(this->logger, BLUE, "User %s sent: %s", client->username.c_str(), args);
+        } else if (!strcmp(cmd, "users")) {
+            static char buf[256];
+            for (auto i: this->clients) {
+                int len;
+                if (i->assignedRoom == NULL) {
+                    len = sprintf(buf, "%s\n", i->username.c_str());
+                } else {
+                    len = sprintf(buf, "%s %s\n",
+                        i->username.c_str(), i->assignedRoom->name.c_str());
+                }
+                write(client->socketDesc, buf, len);
+            }
+            write(client->socketDesc, "\n", 1);
         } else {
             PPRINTF(this->logger, BLUE, "Unrecognized command: %s", cmd);
         }
@@ -185,7 +198,7 @@ public:
             }
             PPRINTF(this->logger, RED, "Accepted a new connection");
 
-            Client *client = new Client((sockaddr_in*)addr, newFd, -1, MessageBuf(DEFAULT_MSGBUF_LEN));
+            Client *client = new Client((sockaddr_in*)addr, newFd, NULL, MessageBuf(DEFAULT_MSGBUF_LEN));
 
             PPRINTF(this->logger, RED, "Adding new connection to epoll");
             // TODO: this leaks when user disconnects while in a room
@@ -235,7 +248,7 @@ public:
                             // If the user didn't give a name, the first message he sends is his name
                             client->username = c->getCommand();
                             PPRINTF(this->logger, BLUE, "User %d registered as %s", client->socketDesc, client->username.c_str());
-                            client->assignedRoom = -1;
+                            client->assignedRoom = NULL;
                             continue;
                         }
                         this->runCommand(c, client);
@@ -246,6 +259,7 @@ public:
                     exit(1);
                 }
             } else if (sender->src == Source::ROOM) {
+                memset(buf, 0, 256);
                 // for messages sent from room pipes
                 Room *room = sender->data.room;
                 if (read(room->pipeRead, buf, 256) > 0) {

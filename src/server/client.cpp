@@ -10,7 +10,7 @@ Client::~Client() {
 Client::Client(
     sockaddr_in *address,
     int socketDesc,
-    int assignedRoom,
+    Room *assignedRoom,
     MessageBuf msgbuf
 ) {
     this->address = address;
