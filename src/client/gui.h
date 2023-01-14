@@ -4,7 +4,6 @@
 #include "lobby.h"
 #include <QMainWindow>
 #include <QTcpSocket>
-#include <QTimer>
 #include <sys/socket.h>
 
 QT_BEGIN_NAMESPACE

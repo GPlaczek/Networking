@@ -109,6 +109,10 @@ public:
         statusbar = new QStatusBar(Gui);
         statusbar->setObjectName("statusbar");
         Gui->setStatusBar(statusbar);
+        QWidget::setTabOrder(ip, port);
+        QWidget::setTabOrder(port, username);
+        QWidget::setTabOrder(username, confirmBtn);
+        QWidget::setTabOrder(confirmBtn, msgText);
 
         retranslateUi(Gui);
 

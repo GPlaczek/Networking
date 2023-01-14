@@ -2,8 +2,6 @@
 #include "lobby.h"
 #include "./ui_gui.h"
 
-#include <unistd.h>
-#include <iostream>
 #include <QMessageBox>
 
 Gui::Gui(QWidget *parent) : QMainWindow(parent), ui(new Ui::Gui) {
@@ -22,7 +20,7 @@ Gui::~Gui() {
 void Gui::connectToServer(){
     ui->msgText->clear();
     ui->msgText->setAlignment(Qt::AlignCenter);
-    
+
     QString username = ui->username->text().trimmed();
     QString ip = ui->ip->text();
     int port = ui->port->value();
@@ -49,7 +47,7 @@ void Gui::connectToServer(){
             socket->write(usernameUtf8); //send username to server
 
             this->close();
-            lobby = new Lobby();
+            lobby = new Lobby(nullptr, socket);
             lobby->show();
         }
     }

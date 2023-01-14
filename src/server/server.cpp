@@ -240,7 +240,7 @@ public:
                     fprintf(stderr, "Possible missing epoll event");
                     exit(1);
                 }
-                write(client->socketDesc, "leave me alone\n", 16);
+                // write(client->socketDesc, "leave me alone\n", 16);
             } else if (sender->src == Source::ROOM) {
                 // for messages sent from room pipes
                 Room *room = sender->data.room;

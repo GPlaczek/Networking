@@ -224,6 +224,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <tabstops>
+  <tabstop>ip</tabstop>
+  <tabstop>port</tabstop>
+  <tabstop>username</tabstop>
+  <tabstop>confirmBtn</tabstop>
+  <tabstop>msgText</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
