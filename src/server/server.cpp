@@ -239,8 +239,8 @@ public:
                             continue;
                         }
                         this->runCommand(c, client);
+                        delete c;
                     }
-                    delete c;
                 } else {
                     fprintf(stderr, "Possible missing epoll event");
                     exit(1);
