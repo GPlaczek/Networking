@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Lobby</class>
+ <widget class="QDialog" name="Lobby">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>806</width>
+    <height>588</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QPushButton" name="refreshBtn">
+   <property name="geometry">
+    <rect>
+     <x>500</x>
+     <y>400</y>
+     <width>89</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Refresh list</string>
+   </property>
+  </widget>
+  <widget class="QListView" name="listView">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>90</y>
+     <width>256</width>
+     <height>192</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="listWidget">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>300</y>
+     <width>256</width>
+     <height>192</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>dsa</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>dsa</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QPushButton" name="createRoomBtn">
+   <property name="geometry">
+    <rect>
+     <x>500</x>
+     <y>340</y>
+     <width>181</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Create new room</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>30</y>
+     <width>331</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Click on room in list to join it</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
