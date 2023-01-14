@@ -20,13 +20,8 @@ public:
     ~Gui();
 
 protected:
-    QTimer *connTimeoutTimer = new QTimer(this);
     QTcpSocket *socket;
     void connectToServer();
-    void socketConnected();
-    void socketReadData();
-    void socketDisconnected();
-    void socketError();
 
 private:
     Ui::Gui *ui;
