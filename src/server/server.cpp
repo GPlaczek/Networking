@@ -17,24 +17,13 @@
 #include "room.hpp"
 #include "log.hpp"
 #include "sender.hpp"
+#include "msgbuf.hpp"
 
 #define OPTSTRING "hi:p:r:c:q:"
 #define N_ROOMS_DEFAULT 16
 #define N_CLIENTS_DEFAULT 64
 #define QUEUE_LEN_DEFAULT 32
-
-// Remember to free the returned char pointer afterwards
-// This functions returns the command name
-// ptr - pointer to the rest of the message
-char *get_command_name(char *buf, char **ptr) {
-    char *command;
-    *ptr = strchrnul(buf, ' ');
-    int len = *ptr - buf;
-    command = new char[len+1];
-    memcpy(command, buf, len);
-    command[len] = 0;
-    return command;
-}
+#define DEFAULT_MSGBUF_LEN 2048
 
 void print_help(const char *name) {
     printf("server - Taboo game server\n"
@@ -106,6 +95,81 @@ public:
         room->assign(client);
     }
 
+    void runCommand(Command *command, Client *client) {
+        char *cmd = command->getCommand();
+        char *args = command->getArgs();
+        std::string message;
+        if (!strcmp(cmd, "create")) {
+            // create a new room
+            if (args == NULL) {
+                PPRINTF(this->logger, RED, "User %s did not entered room name", client->username.c_str());
+                message = "Please enter room name after 'create' command\n";
+                write(client->socketDesc, message.c_str(), message.length() + 1);
+            } else {
+                //check if room name is unique
+                bool unique = true;
+                for (int i = 0; i < this->rooms.size(); i++) {
+                    if (this->rooms[i]->name == args) {
+                        unique = false;
+                        PPRINTF(this->logger, RED, "Room name %s is not unique", args);
+                        message = "Please enter different room name. This one is not unique\n";
+                        write(client->socketDesc, message.c_str(), message.length() + 1);
+                        break;
+                    }
+                }
+                if (unique) {
+                    PPRINTF(this->logger, RED, "User %s creates a new room", client->username.c_str());
+                    Room *room = new Room(3, 2, 2, client);
+
+                    this->rooms.push_back(room);
+                    std::thread roomTh(&Room::roomLoop, room);
+                    room->threadFd = std::move(roomTh);
+                    room->assign(client);
+                    room->name = args;
+                    epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
+                    // for some reason declaring Sender as not a pointer breaks it
+                    // TODO: free this pointer after removing a room
+                    struct Sender *sr = new Sender;
+                    sr->data = {.room=room};
+                    sr->src = Source::ROOM;
+
+                    // epoll_event for reading from room pipe
+                    struct epoll_event ev = {
+                        .events = EPOLLIN,
+                        .data= {.ptr = sr}
+                    };
+
+                    epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev);
+                    message = "Room " + room->name + " successfully created\n";                       
+                    write(client->socketDesc, message.c_str(), message.length() + 1);
+                }
+            }
+        } else if (!strcmp(cmd, "join")) {
+            // join a room
+            int room;
+            sscanf(args, "%d", &room);
+            PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
+            if (client->assignedRoom != -1) {
+                PPRINTF(this->logger, BLUE, "User %s is already assigned to a room %i", client->username.c_str(), client->assignedRoom);
+                message = "You are already assigned to the room " + std::to_string(client->assignedRoom) + "\n";
+                write(client->socketDesc, message.c_str(), message.length() + 1);
+            } else {
+                try {
+                    this->rooms.at(room)->assign(client);
+                    epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
+                    message = "Successfully joined the room " + std::to_string(room) + "\n";
+                    write(client->socketDesc, message.c_str(), message.length() + 1);
+                } catch (...) {
+                    write(client->socketDesc, "No such room\n", 14);
+                }
+            }
+        } else if (!strcmp(cmd, "msg")) {
+            PPRINTF(this->logger, BLUE, "User %s sent: %s", client->username.c_str(), args);
+        } else {
+            PPRINTF(this->logger, BLUE, "Unrecognized command: %s", cmd);
+        }
+    }
+
     void listenLoop() {
         // loop for accepting new connections
         struct sockaddr *addr;
@@ -121,9 +185,7 @@ public:
             }
             PPRINTF(this->logger, RED, "Accepted a new connection");
 
-            Client *client = new Client;
-            client -> socketDesc = newFd;
-            client -> address = (sockaddr_in*)addr;
+            Client *client = new Client((sockaddr_in*)addr, newFd, -1, MessageBuf(DEFAULT_MSGBUF_LEN));
 
             PPRINTF(this->logger, RED, "Adding new connection to epoll");
             // TODO: this leaks when user disconnects while in a room
@@ -146,8 +208,6 @@ public:
     void localLoop() {
         struct epoll_event incomming;
         char buf[256];
-        std::string message;
-        char *ptr, *command;
         Sender *sender; 
         while(1) {
             memset(buf, 0, 256);
@@ -165,98 +225,37 @@ public:
                     PPRINTF(this->logger, BLUE, "Client %s closed the connection", client->username.c_str());
                     this->removeUser(client);
                     delete sender;
-                } else if (read(client->socketDesc, buf, 256) > 0) {
-                    if (client->username.empty()) {
-                        // If the user didn't give a name, the first message he sends is his name
-                        PPRINTF(this->logger, BLUE, "User %d registered as %s", client->socketDesc, buf);
-                        client->username = buf;
-                        client->assignedRoom = -1;
-                        continue;
-                    }
-                    command = get_command_name(buf, &ptr);
-
-                    if (!strcmp(command, "create")) {
-                        // create a new room
-                        if (ptr && !ptr[0]) {
-                            PPRINTF(this->logger, RED, "User %s did not entered room name", client->username.c_str());
-                            message = "Please enter room name after 'create' command\n";
-                            write(client->socketDesc, message.c_str(), message.length() + 1);
-                        } else {
-                            //check if room name is unique
-                            bool unique = true;
-                            for (int i = 0; i < this->rooms.size(); i++) {
-                                if (this->rooms[i]->name == ptr) {
-                                    unique = false;
-                                    PPRINTF(this->logger, RED, "Room name %s is not unique", ptr);
-                                    message = "Please enter different room name. This one is not unique\n";
-                                    write(client->socketDesc, message.c_str(), message.length() + 1);
-                                    break;
-                                }
-                            }
-                            if (unique) {
-                                PPRINTF(this->logger, RED, "User %s creates a new room", client->username.c_str());
-                                Room *room = new Room(3, 2, 2, client);
-
-                                this->rooms.push_back(room);
-                                std::thread roomTh(&Room::roomLoop, room);
-                                room->threadFd = std::move(roomTh);
-                                room->assign(client);
-                                room->name = ptr;
-                                epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
-                                // for some reason declaring Sender as not a pointer breaks it
-                                // TODO: free this pointer after removing a room
-                                struct Sender *sr = new Sender;
-                                sr->data = {.room=room};
-                                sr->src = Source::ROOM;
-
-                                // epoll_event for reading from room pipe
-                                struct epoll_event ev = {
-                                    .events = EPOLLIN,
-                                    .data= {.ptr = sr}
-                                };
-
-                                epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev);
-                                message = "Room " + room->name + " successfully created\n";                       
-                                write(client->socketDesc, message.c_str(), message.length() + 1);
-                            }
+                } else if (incomming.events & EPOLLIN) {
+                    client->msgbuf.append(client->socketDesc);
+                    Command *c;
+                    while (1) {
+                        c = client->msgbuf.getCommand();
+                        if (c == NULL) { break; };
+                        if (client->username.empty()) {
+                            // If the user didn't give a name, the first message he sends is his name
+                            client->username = c->getCommand();
+                            PPRINTF(this->logger, BLUE, "User %d registered as %s", client->socketDesc, client->username.c_str());
+                            client->assignedRoom = -1;
+                            continue;
                         }
-                    } else if (!strcmp(command, "join")) {
-                        // join a room
-                        int room;
-                        sscanf(ptr, "%d", &room);
-                        PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
-                        if (client->assignedRoom != -1) {
-                            PPRINTF(this->logger, BLUE, "User %s is already assigned to a room %i", client->username.c_str(), client->assignedRoom);
-                            message = "You are already assigned to the room " + std::to_string(client->assignedRoom) + "\n";
-                            write(client->socketDesc, message.c_str(), message.length() + 1);
-                        } else {
-                            try {
-                                this->rooms.at(room)->assign(client);
-                                epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
-                                message = "Successfully joined the room " + std::to_string(room) + "\n";
-                                write(client->socketDesc, message.c_str(), message.length() + 1);
-                            } catch (...) {
-                                write(client->socketDesc, "No such room\n", 14);
-                            }
-                        }
-                    } else {
-                        PPRINTF(this->logger, BLUE, "User %s sent: %s", client->username.c_str(), buf);
+                        this->runCommand(c, client);
                     }
-                    delete [] command;
+                    delete c;
                 } else {
                     fprintf(stderr, "Possible missing epoll event");
                     exit(1);
                 }
-                write(client->socketDesc, "leave me alone\n", 16);
             } else if (sender->src == Source::ROOM) {
                 // for messages sent from room pipes
                 Room *room = sender->data.room;
                 if (read(room->pipeRead, buf, 256) > 0) {
-                    command = get_command_name(buf, &ptr);
+                    Command command = Command(buf);
+                    char *cmd = command.getCommand();
+                    char *args = command.getArgs();
                     PPRINTF(this->logger, GREEN, "Room sent command %s", command);
-                    if (!strcmp(command, "remove")) {
+                    if (!strcmp(cmd, "remove")) {
                         Client *client;
-                        sscanf(ptr, "%p", &client);
+                        sscanf(args, "%p", &client);
                         this->removeUser(client);
                     }
                     PPRINTF(this->logger, GREEN, "Room sent %s", buf);
