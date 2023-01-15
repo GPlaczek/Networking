@@ -13,9 +13,10 @@ LOGGER.println(COLOR, __func__, FORMAT, ##args);\
 
 class Log {
     void get_time();
-    char buf[256];
+    char *buf;
     int pos;
     std::mutex mtx;
 public:
+    Log();
     void println(int color, const char *func, const char *format, ...);
 };

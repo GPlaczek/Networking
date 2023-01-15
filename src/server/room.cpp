@@ -62,7 +62,7 @@ void Room::assign(Client *client) {
     };
     if (epoll_ctl(this->epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev) == 0) {
         this -> nPlayers++;
-        client -> assignedRoom = this -> epollFd;
+        client -> assignedRoom = this;
         PPRINTF(this->logger, YELLOW, "Client %s assigned to room %i", client->username.c_str(), this->epollFd);
     }
 }
@@ -70,5 +70,5 @@ void Room::assign(Client *client) {
 void Room::unassign(Client *client) {
     epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
     this->nPlayers--;
-    client -> assignedRoom = -1;
+    client -> assignedRoom = NULL;
 }
