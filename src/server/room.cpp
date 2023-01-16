@@ -72,3 +72,7 @@ void Room::unassign(Client *client) {
     this->nPlayers--;
     client -> assignedRoom = NULL;
 }
+
+int Room::getMaxPlayers() { return this -> maxPlayers; }
+int Room::getNRounds() { return this -> nRounds; }
+int Room::getRoundTime() { return this -> roundTime; }
