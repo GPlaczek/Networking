@@ -27,6 +27,12 @@ Command *MessageBuf::getCommand() {
     return new Command(this->buf+__bufPos);
 }
 
+void MessageBuf::shift() {
+    memmove(this->buf, this->buf+this->bufPos, this->contentLen);
+    this->contentLen -= this->bufPos;
+    this->bufPos = 0;
+}
+
 Command::Command() {
     this->command = NULL;
     this->args = NULL;

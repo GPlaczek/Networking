@@ -20,6 +20,6 @@ public:
     MessageBuf(int size);
     void append(int desc);
     Command *getCommand();
-    void shift(int len);
+    void shift();
 };
 

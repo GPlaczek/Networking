@@ -265,6 +265,7 @@ public:
                         this->runCommand(c, client);
                         delete c;
                     }
+                    client->msgbuf.shift();
                 } else {
                     fprintf(stderr, "Possible missing epoll event");
                     exit(1);
