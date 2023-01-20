@@ -99,6 +99,7 @@ public:
         char *cmd = command->getCommand();
         char *args = command->getArgs();
         std::string message;
+        static char buf[256];
         if (!strcmp(cmd, "create")) {
             // create a new room
             if (args == NULL) {
@@ -166,7 +167,6 @@ public:
         } else if (!strcmp(cmd, "msg")) {
             PPRINTF(this->logger, BLUE, "User %s sent: %s", client->username.c_str(), args);
         } else if (!strcmp(cmd, "users")) {
-            static char buf[256];
             for (auto i: this->clients) {
                 int len;
                 if (i->assignedRoom == NULL) {
@@ -175,6 +175,17 @@ public:
                     len = sprintf(buf, "%s %s\n",
                         i->username.c_str(), i->assignedRoom->name.c_str());
                 }
+                write(client->socketDesc, buf, len);
+            }
+            write(client->socketDesc, "\n", 1);
+        } else if (!strcmp(cmd, "rooms")) {
+            for (auto i: this->rooms) {
+                int len;
+                len = sprintf(buf, "%s %d %d %d\n",
+                    i->name.c_str(),
+                    i->getMaxPlayers(),
+                    i->getNRounds(),
+                    i->getRoundTime());
                 write(client->socketDesc, buf, len);
             }
             write(client->socketDesc, "\n", 1);
@@ -254,6 +265,7 @@ public:
                         this->runCommand(c, client);
                         delete c;
                     }
+                    client->msgbuf.shift();
                 } else {
                     fprintf(stderr, "Possible missing epoll event");
                     exit(1);

@@ -21,4 +21,8 @@ public:
     void roomLoop();
     void assign(Client *client);
     void unassign(Client *client);
+
+    int getMaxPlayers();
+    int getNRounds();
+    int getRoundTime();
 };
