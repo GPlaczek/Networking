@@ -6,12 +6,14 @@
 #include <thread>
 
 class Room {
+    int timerfd, timer;
     int __pipeRead, __pipeWrite; // room pipe ends
     int epollFd;
     int maxPlayers, nRounds, roundTime;
     int nPlayers;
     Client *describer;
     Log logger;
+    void initTimer();
 public:
     int pipeRead, pipeWrite; // server pipe ends
     std::thread threadFd;
