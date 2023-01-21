@@ -18,6 +18,7 @@
 #include "log.hpp"
 #include "sender.hpp"
 #include "msgbuf.hpp"
+#include "words.hpp"
 
 #define OPTSTRING "hi:p:r:c:q:"
 #define N_ROOMS_DEFAULT 16
@@ -68,6 +69,7 @@ public:
 
         this -> socketFd = socket(AF_INET, SOCK_STREAM, 0);
         this -> epollFd = epoll_create(nClients);
+        Words::load_words("src/res/words.txt");
 
         int sockopt = 1;
         setsockopt(this -> socketFd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
@@ -120,13 +122,13 @@ public:
                 }
                 if (unique) {
                     PPRINTF(this->logger, RED, "User %s creates a new room", client->username.c_str());
-                    Room *room = new Room(3, 2, 2, client);
+                    Room *room = new Room(5, 10, 60);
 
                     this->rooms.push_back(room);
                     std::thread roomTh(&Room::roomLoop, room);
                     room->threadFd = std::move(roomTh);
-                    room->assign(client);
                     room->name = args;
+                    room->assign(client);
                     epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
                     // for some reason declaring Sender as not a pointer breaks it
                     // TODO: free this pointer after removing a room
@@ -151,7 +153,7 @@ public:
             sscanf(args, "%d", &room);
             PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
             if (client->assignedRoom != NULL) {
-                PPRINTF(this->logger, BLUE, "User %s is already assigned to a room %i", client->username.c_str(), client->assignedRoom);
+                PPRINTF(this->logger, BLUE, "User %s is already assigned to a room %s", client->username.c_str(), client->assignedRoom->name.c_str());
                 message = "You are already assigned to the room " + client->assignedRoom->name + "\n";
                 write(client->socketDesc, message.c_str(), message.length() + 1);
             } else {
@@ -179,13 +181,14 @@ public:
             }
             write(client->socketDesc, "\n", 1);
         } else if (!strcmp(cmd, "rooms")) {
-            for (auto i: this->rooms) {
+            for (int i = 0; i < this->rooms.size(); i++) {
                 int len;
-                len = sprintf(buf, "%s %d %d %d\n",
-                    i->name.c_str(),
-                    i->getMaxPlayers(),
-                    i->getNRounds(),
-                    i->getRoundTime());
+                len = sprintf(buf, "%d %s %d %d %d %d\n", i,
+                    this->rooms[i]->name.c_str(),
+                    this->rooms[i]->getNPlayers(),
+                    this->rooms[i]->getMaxPlayers(),
+                    this->rooms[i]->getNRounds(),
+                    this->rooms[i]->getRoundTime());
                 write(client->socketDesc, buf, len);
             }
             write(client->socketDesc, "\n", 1);
