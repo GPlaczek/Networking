@@ -95,31 +95,48 @@ void Room::roomLoop() {
                 this->game->seconds_left = this->roundTime;
                 if (this->describer == this->nPlayers - 1) this -> describer = 0;
                 else this -> describer++;
+                sprintf(buf, "describe %s\n", this->game->word.c_str());
+                write(this->players[describer]->data.client->socketDesc, buf, strlen(buf));
             } else {
                 PPRINTF(this->logger, GREEN, "Tik Tok %d seconds left", this->game->seconds_left);
                 this->game->seconds_left--;
             }
             sprintf(buf, "%d\n", this->game->seconds_left);
+            int len = strlen(buf);
             for (int i = 0; i < this -> players.size(); i++) {
-                write(this->players[i]->data.client->socketDesc, buf, strlen(buf));
+                write(this->players[i]->data.client->socketDesc, buf, len);
             }
         } else {
             client = ievent->data.client;
             if (incomming.events & EPOLLRDHUP) {
-                PPRINTF(this->logger, YELLOW, "Client %s closed the connection", client->username.c_str());
+                PPRINTF(this->logger, YELLOW,
+                    "Client %s closed the connection", client->username.c_str());
                 this->unassign(ievent);
                 dprintf(this->__pipeWrite, "remove %p", client);
             } else if (incomming.events & EPOLLERR) {
                 PPRINTF(this->logger, YELLOW, "EROR");
             } else {
                 read(client->socketDesc, buf, 256);
-                if (!strcmp(this->game->word.c_str(), buf)) {
-                    PPRINTF(this->logger, YELLOW, "User %s guessed the word", client->username.c_str());
+                if (this->players[describer]->data.client != client &&
+                    !strcmp(this->game->word.c_str(), buf)
+                ) {
+                    PPRINTF(this->logger, YELLOW,
+                        "User %s guessed the word", client->username.c_str());
                     this->game->round_num++;
                     this->game->seconds_left = 0;
+                    sprintf(buf, "Win %s\n", client->username.c_str());
+                    int len = strlen(buf);
+                    for (auto i: this -> players) {
+                        write(i->data.client->socketDesc, buf, len);
+                    }
+                } else {
+                    PPRINTF(this->logger, YELLOW, "User %s send %s to the second thread",
+                        client->username.c_str(), buf);
+                    int len = strlen(buf);
+                    for (auto i: this -> players) {
+                        write(i->data.client->socketDesc, buf, len);
+                    }
                 }
-                PPRINTF(this->logger, YELLOW, "User %s send %s to the second thread",
-                    client->username.c_str(), buf);
             }
         }
     }
