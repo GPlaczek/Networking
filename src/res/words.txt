@@ -1,0 +1,10 @@
+blimp
+apple
+firecracker
+hammer
+diamond
+helicopter
+towel
+sandals
+snowball
+tram

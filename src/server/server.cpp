@@ -18,6 +18,7 @@
 #include "log.hpp"
 #include "sender.hpp"
 #include "msgbuf.hpp"
+#include "words.hpp"
 
 #define OPTSTRING "hi:p:r:c:q:"
 #define N_ROOMS_DEFAULT 16
@@ -68,6 +69,7 @@ public:
 
         this -> socketFd = socket(AF_INET, SOCK_STREAM, 0);
         this -> epollFd = epoll_create(nClients);
+        Words::load_words("src/res/words.txt");
 
         int sockopt = 1;
         setsockopt(this -> socketFd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
@@ -181,8 +183,9 @@ public:
         } else if (!strcmp(cmd, "rooms")) {
             for (int i = 0; i < this->rooms.size(); i++) {
                 int len;
-                len = sprintf(buf, "%d %s %d %d %d\n", i,
+                len = sprintf(buf, "%d %s %d %d %d %d\n", i,
                     this->rooms[i]->name.c_str(),
+                    this->rooms[i]->getNPlayers(),
                     this->rooms[i]->getMaxPlayers(),
                     this->rooms[i]->getNRounds(),
                     this->rooms[i]->getRoundTime());

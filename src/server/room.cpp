@@ -1,6 +1,7 @@
 #include "client.hpp"
 #include "room.hpp"
 #include "log.hpp"
+#include "words.hpp"
 
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
@@ -8,6 +9,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <string.h>
 
 enum Source {
     CLIENT=0,
@@ -22,6 +24,14 @@ struct InEvent {
     enum Source src;
 };
 
+void Room::initGame() {
+    this->game = new struct game;
+    this->game->round_num = 0;
+    this->game->seconds_left = this ->roundTime;
+    this->game->word = Words::get_word();
+    PPRINTF(this->logger, YELLOW, "The word is %s", this->game->word.c_str());
+}
+
 Room::Room(int maxPlayers, int nRounds, int roundTime, Client* describer) {
     this -> maxPlayers = maxPlayers;
     this -> nRounds = nRounds;
@@ -30,7 +40,7 @@ Room::Room(int maxPlayers, int nRounds, int roundTime, Client* describer) {
     this -> nPlayers = 0;
     this -> epollFd = epoll_create(maxPlayers);
     this -> timerfd = -1;
-    this -> initTimer();
+
     int pp[2];
     pipe2(pp, O_DIRECT);
     this -> __pipeRead = pp[0];
@@ -88,7 +98,14 @@ void Room::roomLoop() {
         if (ievent->src == Source::CLOCK) {
             this -> timer--;
             read(this->timerfd, buf, 8);
-            PPRINTF(this->logger, GREEN, "Tik Tok");
+            if (this->game->seconds_left == 0) {
+                this->game->word = Words::get_word();
+                PPRINTF(this->logger, YELLOW, "The new word is %s", this->game->word.c_str());
+                this->game->seconds_left = this->roundTime;
+            } else {
+                PPRINTF(this->logger, GREEN, "Tik Tok %d seconds left", this->game->seconds_left);
+                this->game->seconds_left--;
+            }
         } else {
             client = ievent->data.client;
             if (incomming.events & EPOLLRDHUP) {
@@ -99,6 +116,11 @@ void Room::roomLoop() {
                 PPRINTF(this->logger, YELLOW, "EROR");
             } else {
                 read(client->socketDesc, buf, 256);
+                if (!strcmp(this->game->word.c_str(), buf)) {
+                    PPRINTF(this->logger, YELLOW, "User %s guessed the word", client->username.c_str());
+                    this->game->round_num++;
+                    this->game->seconds_left = 0;
+                }
                 PPRINTF(this->logger, YELLOW, "User %s send %s to the second thread",
                     client->username.c_str(), buf);
             }
@@ -119,6 +141,10 @@ void Room::assign(Client *client) {
         this -> nPlayers++;
         client -> assignedRoom = this;
         PPRINTF(this->logger, YELLOW, "Client %s assigned to room %s", client->username.c_str(), this->name.c_str());
+        if (this -> nPlayers >= 3) {
+            this->initTimer();
+            this->initGame();
+        }
     }
 }
 
@@ -131,3 +157,4 @@ void Room::unassign(Client *client) {
 int Room::getMaxPlayers() { return this -> maxPlayers; }
 int Room::getNRounds() { return this -> nRounds; }
 int Room::getRoundTime() { return this -> roundTime; }
+int Room::getNPlayers() { return this -> nPlayers; }

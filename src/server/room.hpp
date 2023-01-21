@@ -5,7 +5,14 @@
 
 #include <thread>
 
+struct game {
+    int seconds_left;
+    int round_num;
+    std::string word;
+};
+
 class Room {
+    struct game *game;
     int timerfd, timer;
     int __pipeRead, __pipeWrite; // room pipe ends
     int epollFd;
@@ -14,6 +21,7 @@ class Room {
     Client *describer;
     Log logger;
     void initTimer();
+    void initGame();
 public:
     int pipeRead, pipeWrite; // server pipe ends
     std::thread threadFd;
@@ -27,4 +35,5 @@ public:
     int getMaxPlayers();
     int getNRounds();
     int getRoundTime();
+    int getNPlayers();
 };
