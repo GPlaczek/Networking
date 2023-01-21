@@ -4,6 +4,7 @@
 #include "log.hpp"
 
 #include <thread>
+#include <vector>
 
 struct game {
     int seconds_left;
@@ -11,14 +12,29 @@ struct game {
     std::string word;
 };
 
+enum RoomSource {
+    PLAYER=0,
+    CLOCK=1,
+};
+
+struct InEvent {
+    union Stc {
+        Client *client;
+        int clock_fd;
+    } data;
+    enum RoomSource src;
+};
+
 class Room {
     struct game *game;
-    int timerfd, timer;
+    struct InEvent *clock_inevent;
+    std::vector<struct InEvent*> players;
+
     int __pipeRead, __pipeWrite; // room pipe ends
     int epollFd;
     int maxPlayers, nRounds, roundTime;
     int nPlayers;
-    Client *describer;
+    int describer;
     Log logger;
     void initTimer();
     void initGame();
@@ -26,11 +42,11 @@ public:
     int pipeRead, pipeWrite; // server pipe ends
     std::thread threadFd;
     std::string name;
-    Room(int maxPlayers, int nRounds, int roundTime, Client *describer);
+    Room(int maxPlayers, int nRounds, int roundTime);
     ~Room();
     void roomLoop();
     void assign(Client *client);
-    void unassign(Client *client);
+    void unassign(InEvent *ie);
 
     int getMaxPlayers();
     int getNRounds();

@@ -122,7 +122,7 @@ public:
                 }
                 if (unique) {
                     PPRINTF(this->logger, RED, "User %s creates a new room", client->username.c_str());
-                    Room *room = new Room(3, 2, 2, client);
+                    Room *room = new Room(5, 10, 60);
 
                     this->rooms.push_back(room);
                     std::thread roomTh(&Room::roomLoop, room);
