@@ -80,16 +80,19 @@ void Lobby::listItems(QString command, QListWidget* itemList) {
     this->socket->write(listItemsUtf8);
 
     if(this->socket->waitForReadyRead(3000)) {
-        QString items = this->socket->readAll();
-        std::cout << items.toStdString() << "\n";
-        QString item = "";
-        for (int i = 0; i < items.size(); i++) {
-            if(items[i] == '\n') {
-                itemList->addItem(item);
-                item.clear();
-            } else {
-                item += items[i];
+//        QString items = this->socket->readAll();
+        QString item = this->socket->readLine();
+        int i = 0;
+        while(i < 100) {
+            if(item == '\n') {
+                write(STDOUT_FILENO, "koniec\n", 7);
+                break;
             }
+            write(STDOUT_FILENO, item.toStdString().c_str(), item.size());
+            item.chop(1);
+            itemList->addItem(item);
+            item = this->socket->readLine();
+            i++;
         }
     } else {
         //server didnt sent response
