@@ -15,68 +15,18 @@ Lobby::Lobby(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::
     this->socket = socket;
     connect(ui->createRoomBtn, &QPushButton::clicked, this, &Lobby::createRoom);
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &Lobby::disconnect);
-    connect(ui->refreshUserListBtn, &QPushButton::clicked, this, &Lobby::listUsers);
-    connect(ui->refreshRoomListBtn, &QPushButton::clicked, this, &Lobby::listRooms);
-    // connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listItems("users", this->ui->usersList);});
-//    connect(ui->refreshRoomListBtn, &QPushButton::clicked, this, [this]{listItems("rooms", this->ui->roomsList);});
+    connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listItems("users", this->ui->usersList);});
+    connect(ui->refreshRoomListBtn, &QPushButton::clicked, this, [this]{listItems("rooms", this->ui->roomsList);});
 
 //    connect(this->socket, &QTcpSocket::readyRead, this, &Lobby::socketReadData);
 //    connect(this->socket, &QTcpSocket::disconnected, this, &Lobby::socketDisconnected);
-    // listItems("users", this->ui->usersList);
-    // listItems("rooms", this->ui->roomsList);
-    this -> listUsers();
-    this -> listRooms();
+    listItems("users", this->ui->usersList);
+    listItems("rooms", this->ui->roomsList);
+    connect(ui->roomsList, &QListWidget::itemClicked, this, [this](QListWidgetItem *pItem){joinRoom(pItem);});
 }
 
 Lobby::~Lobby() {
     delete ui;
-}
-
-void Lobby::listUsers() {
-    ui->usersList->clear();
-    QString listUsers = "users";
-    QByteArray listUsersUtf8 = (listUsers+'\n').toUtf8();
-    this->socket->write(listUsersUtf8);
-
-    QString users, user;
-    while (1) {
-        if(this->socket->waitForReadyRead(3000)) {
-            QString users = this->socket->readAll();
-            QString user = "";
-            for (int i = 0; i < users.size(); i++) {
-                if(users[i] == '\n') {
-                    if (user == "") return;
-                    ui->usersList->addItem(user);
-                    user.clear();
-                } else {
-                    user += users[i];
-                }
-            }
-        }
-    }
-}
-
-void Lobby::listRooms() {
-    ui->roomsList->clear();
-    QString listRooms = "rooms";
-    QByteArray listRoomsUtf8 = (listRooms+'\n').toUtf8();
-    this->socket->write(listRoomsUtf8);
-
-    while (1) {
-        if(this->socket->waitForReadyRead(3000)) {
-            QString rooms = this->socket->readAll();
-            QString room = "";
-            for (int i = 0; i < rooms.size(); i++) {
-                if(rooms[i] == '\n') {
-                    if (room == "") return;
-                    ui->roomsList->addItem(room);
-                    room.clear();
-                } else {
-                    room += rooms[i];
-                }
-            }
-        }
-    }
 }
 
 void Lobby::listItems(QString command, QListWidget* itemList) {
@@ -85,21 +35,36 @@ void Lobby::listItems(QString command, QListWidget* itemList) {
     QByteArray listItemsUtf8 = (listItems+'\n').toUtf8();
     this->socket->write(listItemsUtf8);
 
-    if(this->socket->waitForReadyRead(3000)) {
-//        QString items = this->socket->readAll();
-        QString item = this->socket->readLine();
-        while(1) {
-            if(item == "") {
-                write(STDOUT_FILENO, "koniec\n", 7);
-                break;
+    while (1) {
+        if(this->socket->waitForReadyRead(3000)) {
+            QString items = this->socket->readAll();
+            QString item = "";
+            for (int i = 0; i < items.size(); i++) {
+                if(items[i] == '\n') {
+                    if (item == "") return;
+                    itemList->addItem(item);
+                    item.clear();
+                } else {
+                    item += items[i];
+                }
             }
-            write(STDOUT_FILENO, item.toStdString().c_str(), item.size());
-            item.chop(1);
-            itemList->addItem(item);
-            item = this->socket->readLine();
         }
-    } else {
-        //server didnt sent response
+    }
+}
+
+void Lobby::joinRoom(QListWidgetItem *item) {
+    //extract room index (first number) from the whole room info
+    QString roomIndex = item->text().mid(0, item->text().indexOf(" ")).trimmed();
+    QByteArray roomIndexUtf8 = ("join "+roomIndex+'\n').toUtf8();
+    this->socket->write(roomIndexUtf8);
+
+    if(this->socket->waitForReadyRead(3000)) {
+        QString servMsg = this->socket->readAll();
+        qDebug() << servMsg;
+
+        this->close();
+        waitingRoom = new WaitingRoom(nullptr);
+        waitingRoom->show();
     }
 }
 
@@ -115,15 +80,12 @@ void Lobby::createRoom() {
 
         if(this->socket->waitForReadyRead(3000)) {
             QString servMsg = this->socket->readAll();
-            std::cout << servMsg.toStdString() << "\n";
+            qDebug() << servMsg;
 
             this->close();
             waitingRoom = new WaitingRoom(nullptr);
             waitingRoom->show();
-        } else {
-            //server didnt sent response
         }
-
     } else {
         ui->msgText->show();
         ui->msgText->append("Enter room name!");
@@ -141,7 +103,11 @@ void Lobby::socketReadData() {
 }
 
 void Lobby::disconnect(){
-    //TODO: are you sure question
-    this->socket->close();
-    this->close();
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "Disconnect", "Are you sure?", QMessageBox::Yes|QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        this->socket->close();
+        this->close();
+    }
 }

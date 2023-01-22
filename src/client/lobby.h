@@ -22,9 +22,8 @@ public:
 
 protected:
     QTcpSocket *socket;
-    void listUsers();
-    void listRooms();
     void listItems(QString command, QListWidget* itemList);
+    void joinRoom(QListWidgetItem *item);
     void createRoom();
     void disconnect();
     void socketDisconnected();
