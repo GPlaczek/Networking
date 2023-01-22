@@ -21,5 +21,5 @@ public:
     void append(int desc);
     Command *getCommand();
     void shift();
+    void flush();
 };
-

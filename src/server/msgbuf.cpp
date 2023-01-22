@@ -33,6 +33,11 @@ void MessageBuf::shift() {
     this->bufPos = 0;
 }
 
+void MessageBuf::flush() {
+    this->contentLen = 0;
+    this->bufPos = 0;
+}
+
 Command::Command() {
     this->command = NULL;
     this->args = NULL;

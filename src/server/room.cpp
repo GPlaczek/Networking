@@ -101,7 +101,7 @@ void Room::roomLoop() {
                 PPRINTF(this->logger, GREEN, "Tik Tok %d seconds left", this->game->seconds_left);
                 this->game->seconds_left--;
             }
-            sprintf(buf, "%d\n", this->game->seconds_left);
+            sprintf(buf, "clock %d\n", this->game->seconds_left);
             int len = strlen(buf);
             for (int i = 0; i < this -> players.size(); i++) {
                 write(this->players[i]->data.client->socketDesc, buf, len);
@@ -116,29 +116,42 @@ void Room::roomLoop() {
             } else if (incomming.events & EPOLLERR) {
                 PPRINTF(this->logger, YELLOW, "EROR");
             } else {
-                read(client->socketDesc, buf, 256);
-                if (this->players[describer]->data.client != client &&
-                    !strcmp(this->game->word.c_str(), buf)
-                ) {
-                    PPRINTF(this->logger, YELLOW,
-                        "User %s guessed the word", client->username.c_str());
-                    this->game->round_num++;
-                    this->game->seconds_left = 0;
-                    sprintf(buf, "Win %s\n", client->username.c_str());
-                    int len = strlen(buf);
-                    for (auto i: this -> players) {
-                        write(i->data.client->socketDesc, buf, len);
-                    }
-                } else {
-                    PPRINTF(this->logger, YELLOW, "User %s send %s to the second thread",
-                        client->username.c_str(), buf);
-                    int len = strlen(buf);
-                    for (auto i: this -> players) {
-                        write(i->data.client->socketDesc, buf, len);
-                    }
+                client->msgbuf.append(client->socketDesc);
+                Command *c;
+                while (1) {
+                    c = client->msgbuf.getCommand();
+                    if (c == NULL) break;
+                    this -> runCommand(c, client);
                 }
             }
         }
+    }
+}
+
+void Room::runCommand(Command *c, Client *client) {
+    char *cmd = c->getCommand();
+    char buf[256];
+    if (!strcmp(cmd, "users")) {
+        for (auto i: this->players) {
+            int len = sprintf(buf, "%s %d\n", i->data.client->username.c_str(), i->data.client->score);
+            write(client->socketDesc, buf, len);
+        }
+        write(client->socketDesc, "\n", 0);
+    } else if (!strcmp(cmd, "msg")) {
+        char *msg = c->getArgs();
+        if (this->describer >= 0 && this->players[this->describer]->data.client != client && !strcmp(this->game->word.c_str(), msg)) {
+            PPRINTF(this->logger, YELLOW, "User %s guessed the word", client->username.c_str());
+            this->game->round_num++;
+            this->game->seconds_left = 0;
+            sprintf(buf, "Win %s\n", client->username.c_str());
+            client->score++;
+            int len = strlen(buf);
+            for (auto i: this -> players) {
+                write(i->data.client->socketDesc, buf, len);
+            }
+        }
+    } else {
+        PPRINTF(this->logger, GREEN, "Unrecognized command");
     }
 }
 
@@ -152,6 +165,8 @@ void Room::assign(Client *client) {
         .data= {.ptr = ie}
     };
     this -> players.push_back(ie);
+    client->msgbuf.flush();
+    client->score = 0;
     if (epoll_ctl(this->epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev) == 0) {
         this -> nPlayers++;
         client -> assignedRoom = this;
@@ -172,6 +187,7 @@ void Room::unassign(InEvent *ie) {
             if (i < describer) describer--;
         }
     }
+    ie->data.client->score=0;
     ie->data.client -> assignedRoom = NULL;
     delete ie;
 }

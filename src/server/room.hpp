@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client.hpp"
+#include "msgbuf.hpp"
 #include "log.hpp"
 
 #include <thread>
@@ -38,6 +39,7 @@ class Room {
     Log logger;
     void initTimer();
     void initGame();
+    void runCommand(Command *c, Client *client);
 public:
     int pipeRead, pipeWrite; // server pipe ends
     std::thread threadFd;
