@@ -15,14 +15,17 @@ Lobby::Lobby(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::
     this->socket = socket;
     connect(ui->createRoomBtn, &QPushButton::clicked, this, &Lobby::createRoom);
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &Lobby::disconnect);
-//    connect(ui->refreshUserListBtn, &QPushButton::clicked, this, &Lobby::listUsers);
-    connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listItems("users", this->ui->usersList);});
-    connect(ui->refreshRoomListBtn, &QPushButton::clicked, this, [this]{listItems("rooms", this->ui->roomsList);});
+    connect(ui->refreshUserListBtn, &QPushButton::clicked, this, &Lobby::listUsers);
+    connect(ui->refreshRoomListBtn, &QPushButton::clicked, this, &Lobby::listRooms);
+    // connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listItems("users", this->ui->usersList);});
+//    connect(ui->refreshRoomListBtn, &QPushButton::clicked, this, [this]{listItems("rooms", this->ui->roomsList);});
 
 //    connect(this->socket, &QTcpSocket::readyRead, this, &Lobby::socketReadData);
 //    connect(this->socket, &QTcpSocket::disconnected, this, &Lobby::socketDisconnected);
-    listItems("users", this->ui->usersList);
-    listItems("rooms", this->ui->roomsList);
+    // listItems("users", this->ui->usersList);
+    // listItems("rooms", this->ui->roomsList);
+    this -> listUsers();
+    this -> listRooms();
 }
 
 Lobby::~Lobby() {
@@ -35,19 +38,21 @@ void Lobby::listUsers() {
     QByteArray listUsersUtf8 = (listUsers+'\n').toUtf8();
     this->socket->write(listUsersUtf8);
 
-    if(this->socket->waitForReadyRead(3000)) {
-        QString users = this->socket->readAll();
-        QString user = "";
-        for (int i = 0; i < users.size(); i++) {
-            if(users[i] == '\n') {
-                ui->usersList->addItem(user);
-                user.clear();
-            } else {
-                user += users[i];
+    QString users, user;
+    while (1) {
+        if(this->socket->waitForReadyRead(3000)) {
+            QString users = this->socket->readAll();
+            QString user = "";
+            for (int i = 0; i < users.size(); i++) {
+                if(users[i] == '\n') {
+                    if (user == "") return;
+                    ui->usersList->addItem(user);
+                    user.clear();
+                } else {
+                    user += users[i];
+                }
             }
         }
-    } else {
-        //server didnt sent response
     }
 }
 
@@ -57,19 +62,20 @@ void Lobby::listRooms() {
     QByteArray listRoomsUtf8 = (listRooms+'\n').toUtf8();
     this->socket->write(listRoomsUtf8);
 
-    if(this->socket->waitForReadyRead(3000)) {
-        QString rooms = this->socket->readAll();
-        QString room = "";
-        for (int i = 0; i < rooms.size(); i++) {
-            if(rooms[i] == '\n') {
-                ui->roomsList->addItem(room);
-                room.clear();
-            } else {
-                room += rooms[i];
+    while (1) {
+        if(this->socket->waitForReadyRead(3000)) {
+            QString rooms = this->socket->readAll();
+            QString room = "";
+            for (int i = 0; i < rooms.size(); i++) {
+                if(rooms[i] == '\n') {
+                    if (room == "") return;
+                    ui->roomsList->addItem(room);
+                    room.clear();
+                } else {
+                    room += rooms[i];
+                }
             }
         }
-    } else {
-        //server didnt sent response
     }
 }
 
@@ -82,9 +88,8 @@ void Lobby::listItems(QString command, QListWidget* itemList) {
     if(this->socket->waitForReadyRead(3000)) {
 //        QString items = this->socket->readAll();
         QString item = this->socket->readLine();
-        int i = 0;
-        while(i < 100) {
-            if(item == '\n') {
+        while(1) {
+            if(item == "") {
                 write(STDOUT_FILENO, "koniec\n", 7);
                 break;
             }
@@ -92,7 +97,6 @@ void Lobby::listItems(QString command, QListWidget* itemList) {
             item.chop(1);
             itemList->addItem(item);
             item = this->socket->readLine();
-            i++;
         }
     } else {
         //server didnt sent response
