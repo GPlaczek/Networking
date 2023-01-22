@@ -121,13 +121,19 @@ public:
                     }
                 }
                 if (unique) {
-                    PPRINTF(this->logger, RED, "User %s creates a new room", client->username.c_str());
-                    Room *room = new Room(5, 10, 60);
+                    int maxPlayers, nRounds, roundTime;
+                    char *roomName = new char[64];
+                    sscanf(args, "%s %d %d %d\n", roomName, &maxPlayers, &nRounds, &roundTime);
+                    PPRINTF(this->logger, RED, "User %s creates a new room (%s %d %d %d)",
+                        client->username.c_str(),
+                        roomName, maxPlayers, nRounds, roundTime);
+                    Room *room = new Room(maxPlayers, nRounds, roundTime);
+                    room->name = roomName;
+                    delete [] roomName;
 
                     this->rooms.push_back(room);
                     std::thread roomTh(&Room::roomLoop, room);
                     room->threadFd = std::move(roomTh);
-                    room->name = args;
                     room->assign(client);
                     epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
                     // for some reason declaring Sender as not a pointer breaks it

@@ -119,6 +119,7 @@ void Room::roomLoop() {
                     c = client->msgbuf.getCommand();
                     if (c == NULL) break;
                     this -> runCommand(c, client);
+                    delete c;
                 }
             }
         }
