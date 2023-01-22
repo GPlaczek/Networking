@@ -305,8 +305,13 @@ public:
                         };
 
                         epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev);
+                    } else if (!strcmp(cmd, "kill")) {
+                        this->rooms.erase(
+                            std::remove(this->rooms.begin(), this->rooms.end(), room),
+                            this->rooms.end());
+                        epoll_ctl(this->epollFd, EPOLL_CTL_DEL, room->pipeRead, NULL);
+                        delete room;
                     }
-                    PPRINTF(this->logger, GREEN, "Room sent %s", buf);
                 }
             }
         }

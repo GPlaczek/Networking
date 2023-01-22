@@ -31,6 +31,7 @@ class Room {
     struct InEvent *clock_inevent;
     std::vector<struct InEvent*> players;
 
+    bool stop;
     int __pipeRead, __pipeWrite; // room pipe ends
     int epollFd;
     int maxPlayers, nRounds, roundTime;

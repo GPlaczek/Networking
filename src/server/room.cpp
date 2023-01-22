@@ -27,6 +27,7 @@ Room::Room(int maxPlayers, int nRounds, int roundTime) {
     this -> epollFd = epoll_create(maxPlayers);
     this -> players = {};
     this -> clock_inevent = NULL;
+    this -> stop = false;
 
     int pp[2];
     pipe2(pp, O_DIRECT);
@@ -38,6 +39,7 @@ Room::Room(int maxPlayers, int nRounds, int roundTime) {
 }
 
 Room::~Room() {
+    PPRINTF(this->logger, YELLOW, "Destructing");
     close(this -> epollFd);
     close(this -> __pipeRead);
     close(this -> __pipeWrite);
@@ -47,7 +49,7 @@ Room::~Room() {
         close(this -> clock_inevent->data.clock_fd);
         delete this -> clock_inevent;
     }
-    threadFd.join();
+    this->threadFd.join();
 }
 
 void Room::initTimer() {
@@ -81,6 +83,10 @@ void Room::roomLoop() {
     struct InEvent *ievent;
     Client *client;
     while (1) {
+        if (stop) {
+            PPRINTF(this->logger, BLUE, "Terminating room");
+            break;
+        }
         epoll_wait(this->epollFd, &incomming, 1, -1);
 
         ievent = ((InEvent *)incomming.data.ptr);
@@ -150,9 +156,8 @@ void Room::runCommand(Command *c, InEvent *ie) {
             }
         }
     } else if (!strcmp(cmd, "leave")) {
-        this->unassign(ie);
         dprintf(this->__pipeWrite, "back %p", client);
-        delete ie;
+        this->unassign(ie);
     } else {
         PPRINTF(this->logger, GREEN, "Unrecognized command");
     }
@@ -193,6 +198,11 @@ void Room::unassign(InEvent *ie) {
     ie->data.client->score=0;
     ie->data.client -> assignedRoom = NULL;
     delete ie;
+
+    if (this->nPlayers == 0) {
+        write(this->__pipeWrite, "kill", 5);
+        stop = true;
+    }
 }
 
 int Room::getMaxPlayers() { return this -> maxPlayers; }
