@@ -15,10 +15,7 @@
 void Room::initGame() {
     this->game = new struct game;
     this->game->round_num = 0;
-    this->game->seconds_left = this ->roundTime;
-    this->game->word = Words::get_word();
-    this->describer = 0;
-    PPRINTF(this->logger, YELLOW, "The word is %s", this->game->word.c_str());
+    this->game->seconds_left = 0;
 }
 
 Room::Room(int maxPlayers, int nRounds, int roundTime) {
