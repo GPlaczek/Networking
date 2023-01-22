@@ -118,7 +118,7 @@ void Room::roomLoop() {
                 while (1) {
                     c = client->msgbuf.getCommand();
                     if (c == NULL) break;
-                    this -> runCommand(c, client);
+                    this -> runCommand(c, ievent);
                     delete c;
                 }
             }
@@ -126,8 +126,9 @@ void Room::roomLoop() {
     }
 }
 
-void Room::runCommand(Command *c, Client *client) {
+void Room::runCommand(Command *c, InEvent *ie) {
     char *cmd = c->getCommand();
+    Client *client = ie->data.client;
     char buf[256];
     if (!strcmp(cmd, "users")) {
         for (auto i: this->players) {
@@ -148,6 +149,10 @@ void Room::runCommand(Command *c, Client *client) {
                 write(i->data.client->socketDesc, buf, len);
             }
         }
+    } else if (!strcmp(cmd, "leave")) {
+        this->unassign(ie);
+        dprintf(this->__pipeWrite, "back %p", client);
+        delete ie;
     } else {
         PPRINTF(this->logger, GREEN, "Unrecognized command");
     }

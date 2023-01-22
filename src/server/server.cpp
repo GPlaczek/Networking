@@ -292,6 +292,19 @@ public:
                         Client *client;
                         sscanf(args, "%p", &client);
                         this->removeUser(client);
+                    } else if (!strcmp(cmd, "back")) {
+                        Client *client;
+                        sscanf(args, "%p", &client);
+                        struct Sender *s1 = new Sender;
+                        s1->data = { .client = client };
+                        s1->src = Source::CLIENT;
+
+                        struct epoll_event ev = {
+                            .events = EPOLLIN | EPOLLRDHUP,
+                            .data= {.ptr = s1}
+                        };
+
+                        epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev);
                     }
                     PPRINTF(this->logger, GREEN, "Room sent %s", buf);
                 }

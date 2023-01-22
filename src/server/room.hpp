@@ -39,7 +39,7 @@ class Room {
     Log logger;
     void initTimer();
     void initGame();
-    void runCommand(Command *c, Client *client);
+    void runCommand(Command *c, InEvent *ie);
 public:
     int pipeRead, pipeWrite; // server pipe ends
     std::thread threadFd;
