@@ -61,5 +61,5 @@ void Log::println(int color, const char *func, const char *format, ...) {
 }
 
 Log::Log() {
-    this->buf = (char*)std::malloc(DEFAULT_BUF_SIZE * sizeof(char));
+    this->buf = new char[DEFAULT_BUF_SIZE];
 }

@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <signal.h>
 
 #include <sys/socket.h>
 #include <sys/epoll.h>
@@ -56,13 +57,22 @@ class Server {
     std::mutex clients_mtx;
     std::vector <Client*> clients;
 
+    void internal_error(int n) {
+        if (n != 0) {
+            perror("Internal error");
+            CLIENTS_MUTEX(for(auto i: this -> clients) {
+                shutdown(i->socketDesc, SHUT_RDWR);})
+            exit(1);
+        };
+    }
+
     // TODO: if clients was an unordered map, this function could be much faster
     void removeUser(Client *user) {
         PPRINTF(this->logger, GREEN, "Removing user %s from the server", user->username.c_str());
         CLIENTS_MUTEX(this -> clients.erase(
             std::remove(this->clients.begin(), this->clients.end(), user),
             this->clients.end());)
-        epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL);
+        this->internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL));
         close(user -> socketDesc);
         delete user;
     }
@@ -88,21 +98,23 @@ public:
         sockopt = 10;
         setsockopt(this -> socketFd, SOL_TCP, TCP_KEEPIDLE, &sockopt, sizeof(sockopt));
 
-        if (bind(this -> socketFd, (sockaddr*)(this -> address), sizeof(*(this -> address)))) {
-            perror("Could not bind to the given address");
-            close(this -> socketFd);
-            exit(1);
-        }
-        listen(this -> socketFd, queueLen);
+        this -> internal_error(bind(this -> socketFd, (sockaddr*)(this -> address), sizeof(*(this -> address))));
+        this -> internal_error(listen(this -> socketFd, queueLen));
     }
 
     ~Server() {
+        for(int i = 0; i < this->rooms.size(); i++) {
+            delete this->rooms[i];
+        }
+        for(auto i: this -> clients) {
+            shutdown(i->socketDesc, SHUT_RDWR);
+        }
         close(this -> socketFd);
     }
 
     void assignToRoom(Client *client, Room *room) {
         if (room->assign(client) == 0) {
-            epoll_ctl(this->epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
+            this -> internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL));
         } else {
             dprintf(client->socketDesc, "room full\n");
         }
@@ -146,7 +158,7 @@ public:
                     std::thread roomTh(&Room::roomLoop, room);
                     room->threadFd = std::move(roomTh);
                     room->assign(client);
-                    epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
+                    this -> internal_error(epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL));
                     // for some reason declaring Sender as not a pointer breaks it
                     // TODO: free this pointer after removing a room
                     struct Sender *sr = new Sender;
@@ -159,7 +171,7 @@ public:
                         .data= {.ptr = sr}
                     };
 
-                    epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev);
+                    this -> internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev));
                     message = "Room " + room->name + " successfully created\n";                       
                     write(client->socketDesc, message.c_str(), message.length() + 1);
                 }
@@ -228,11 +240,10 @@ public:
             })
             PPRINTF(this->logger, RED, "Accepted a new connection");
 
-            Client *client;
-            client = new Client(newFd, NULL, DEFAULT_MSGBUF_LEN);
+            Client *client = new Client(newFd, NULL, DEFAULT_MSGBUF_LEN);
 
             PPRINTF(this->logger, RED, "Adding new connection to epoll");
-            // TODO: this leaks when user disconnects while in a room
+
             struct Sender *s1 = new Sender;
             s1->data = { .client = client };
             s1->src = Source::CLIENT;
@@ -242,10 +253,13 @@ public:
                 .data= {.ptr = s1}
             };
 
-            epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev);
+            if (epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev) != 0) {
+                dprintf(newFd, "Could not register you as a new user");
+            }
 
             PPRINTF(this->logger, RED, "Adding new client to clients vector");
             CLIENTS_MUTEX(this->clients.push_back(client);)
+            this->internal_error(1);
         }
     }
 
@@ -324,12 +338,13 @@ public:
                             .data= {.ptr = s1}
                         };
 
-                        epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev);
+                        this->internal_error(
+                            epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev));
                     } else if (!strcmp(cmd, "kill")) {
                         this->rooms.erase(
                             std::remove(this->rooms.begin(), this->rooms.end(), room),
                             this->rooms.end());
-                        epoll_ctl(this->epollFd, EPOLL_CTL_DEL, room->pipeRead, NULL);
+                        this->internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, room->pipeRead, NULL));
                         delete room;
                     }
                 }
@@ -409,10 +424,6 @@ int main(int argc, char *argv[]) {
     s.localLoop();
 
     mainLoop.join();
-
-    for(int i = 0; i < s.rooms.size(); i++) {
-        delete s.rooms[i];
-    }
 
     return 0;
 }

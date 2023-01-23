@@ -7,7 +7,6 @@
 MessageBuf::MessageBuf(){}
 
 MessageBuf::MessageBuf(int size) {
-    printf("Debuggin\n");
     this -> buf = new char[size];
     memset(buf, 0, size);
     this -> bufSize = size;
@@ -16,7 +15,6 @@ MessageBuf::MessageBuf(int size) {
 }
 
 MessageBuf::~MessageBuf() {
-    printf("Deletin\n");
     delete [] this -> buf;
 }
 
