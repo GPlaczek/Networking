@@ -163,7 +163,11 @@ void Room::runCommand(Command *c, InEvent *ie) {
     }
 }
 
-void Room::assign(Client *client) {
+int Room::assign(Client *client) {
+    if (this -> nPlayers == this -> maxPlayers) {
+        PPRINTF(this -> logger, YELLOW, "User %s attempted to join a full room", client->username.c_str());
+        return -1;
+    }
     struct InEvent *ie = new InEvent;
     ie->data = {.client = client };
     ie->src = RoomSource::PLAYER;
@@ -184,6 +188,7 @@ void Room::assign(Client *client) {
             this->initGame();
         }
     }
+    return 0;
 }
 
 void Room::unassign(InEvent *ie) {

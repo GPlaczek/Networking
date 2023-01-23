@@ -93,8 +93,11 @@ public:
     }
 
     void assignToRoom(Client *client, Room *room) {
-        epoll_ctl(this->epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
-        room->assign(client);
+        if (room->assign(client) == 0) {
+            epoll_ctl(this->epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
+        } else {
+            dprintf(client->socketDesc, "room full\n");
+        }
     }
 
     void runCommand(Command *command, Client *client) {
@@ -164,10 +167,7 @@ public:
                 write(client->socketDesc, message.c_str(), message.length() + 1);
             } else {
                 try {
-                    this->rooms.at(room)->assign(client);
-                    epoll_ctl(this -> epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL);
-                    message = "Successfully joined the room " + std::to_string(room) + "\n";
-                    write(client->socketDesc, message.c_str(), message.length() + 1);
+                    this -> assignToRoom(client, this->rooms.at(room));
                 } catch (...) {
                     write(client->socketDesc, "No such room\n", 14);
                 }

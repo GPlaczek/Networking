@@ -48,7 +48,7 @@ public:
     Room(int maxPlayers, int nRounds, int roundTime);
     ~Room();
     void roomLoop();
-    void assign(Client *client);
+    int assign(Client *client);
     void unassign(InEvent *ie);
 
     int getMaxPlayers();
