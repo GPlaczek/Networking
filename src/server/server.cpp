@@ -47,6 +47,8 @@ class Server {
     Log logger;
 
     int epollFd;
+    // Simple macro to add lock and unlock to the piece of code given
+    // I judged it to be simpler than creating methods for this
     #define CLIENTS_MUTEX(a) \
         this->clients_mtx.lock(); \
         a \
@@ -222,6 +224,11 @@ public:
                 perror("Too many open files");
                 exit(1);
             }
+            CLIENTS_MUTEX(if (this -> clients.size() >= this->nClients) {
+                dprintf(newFd, "Server cannot accept more users\n");
+                close(newFd);
+                continue;
+            })
             PPRINTF(this->logger, RED, "Accepted a new connection");
 
             Client *client = new Client((sockaddr_in*)addr, newFd, NULL, MessageBuf(DEFAULT_MSGBUF_LEN));
