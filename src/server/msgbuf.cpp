@@ -1,5 +1,6 @@
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "msgbuf.hpp"
 
@@ -13,8 +14,12 @@ MessageBuf::MessageBuf(int size) {
     this -> bufPos = 0;
 }
 
+MessageBuf::~MessageBuf() {
+    delete [] this -> buf;
+}
+
 void MessageBuf::append(int desc) {
-    int len = read(desc, this->buf + this->contentLen, this->bufSize - this->contentLen);
+    int len = read(desc, this->buf + this->contentLen, this->bufSize - this->contentLen - 1);
     this -> contentLen += len;
 }
 
@@ -30,6 +35,11 @@ Command *MessageBuf::getCommand() {
 void MessageBuf::shift() {
     memmove(this->buf, this->buf+this->bufPos, this->contentLen);
     this->contentLen -= this->bufPos;
+    this->bufPos = 0;
+}
+
+void MessageBuf::flush() {
+    this->contentLen = 0;
     this->bufPos = 0;
 }
 

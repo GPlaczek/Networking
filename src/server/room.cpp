@@ -15,10 +15,7 @@
 void Room::initGame() {
     this->game = new struct game;
     this->game->round_num = 0;
-    this->game->seconds_left = this ->roundTime;
-    this->game->word = Words::get_word();
-    this->describer = 0;
-    PPRINTF(this->logger, YELLOW, "The word is %s", this->game->word.c_str());
+    this->game->seconds_left = 0;
 }
 
 Room::Room(int maxPlayers, int nRounds, int roundTime) {
@@ -30,6 +27,7 @@ Room::Room(int maxPlayers, int nRounds, int roundTime) {
     this -> epollFd = epoll_create(maxPlayers);
     this -> players = {};
     this -> clock_inevent = NULL;
+    this -> stop = false;
 
     int pp[2];
     pipe2(pp, O_DIRECT);
@@ -41,6 +39,7 @@ Room::Room(int maxPlayers, int nRounds, int roundTime) {
 }
 
 Room::~Room() {
+    PPRINTF(this->logger, YELLOW, "Destructing");
     close(this -> epollFd);
     close(this -> __pipeRead);
     close(this -> __pipeWrite);
@@ -50,7 +49,7 @@ Room::~Room() {
         close(this -> clock_inevent->data.clock_fd);
         delete this -> clock_inevent;
     }
-    threadFd.join();
+    this->threadFd.join();
 }
 
 void Room::initTimer() {
@@ -84,6 +83,10 @@ void Room::roomLoop() {
     struct InEvent *ievent;
     Client *client;
     while (1) {
+        if (stop) {
+            PPRINTF(this->logger, BLUE, "Terminating room");
+            break;
+        }
         epoll_wait(this->epollFd, &incomming, 1, -1);
 
         ievent = ((InEvent *)incomming.data.ptr);
@@ -95,37 +98,76 @@ void Room::roomLoop() {
                 this->game->seconds_left = this->roundTime;
                 if (this->describer == this->nPlayers - 1) this -> describer = 0;
                 else this -> describer++;
+                sprintf(buf, "describe %s\n", this->game->word.c_str());
+                write(this->players[describer]->data.client->socketDesc, buf, strlen(buf));
             } else {
                 PPRINTF(this->logger, GREEN, "Tik Tok %d seconds left", this->game->seconds_left);
                 this->game->seconds_left--;
             }
-            sprintf(buf, "%d\n", this->game->seconds_left);
+            sprintf(buf, "clock %d\n", this->game->seconds_left);
+            int len = strlen(buf);
             for (int i = 0; i < this -> players.size(); i++) {
-                write(this->players[i]->data.client->socketDesc, buf, strlen(buf));
+                write(this->players[i]->data.client->socketDesc, buf, len);
             }
         } else {
             client = ievent->data.client;
             if (incomming.events & EPOLLRDHUP) {
-                PPRINTF(this->logger, YELLOW, "Client %s closed the connection", client->username.c_str());
+                PPRINTF(this->logger, YELLOW,
+                    "Client %s closed the connection", client->username.c_str());
                 this->unassign(ievent);
                 dprintf(this->__pipeWrite, "remove %p", client);
             } else if (incomming.events & EPOLLERR) {
                 PPRINTF(this->logger, YELLOW, "EROR");
             } else {
-                read(client->socketDesc, buf, 256);
-                if (!strcmp(this->game->word.c_str(), buf)) {
-                    PPRINTF(this->logger, YELLOW, "User %s guessed the word", client->username.c_str());
-                    this->game->round_num++;
-                    this->game->seconds_left = 0;
+                client->msgbuf->append(client->socketDesc);
+                Command *c;
+                while (1) {
+                    c = client->msgbuf->getCommand();
+                    if (c == NULL) break;
+                    this -> runCommand(c, ievent);
+                    delete c;
                 }
-                PPRINTF(this->logger, YELLOW, "User %s send %s to the second thread",
-                    client->username.c_str(), buf);
             }
         }
     }
 }
 
-void Room::assign(Client *client) {
+void Room::runCommand(Command *c, InEvent *ie) {
+    char *cmd = c->getCommand();
+    Client *client = ie->data.client;
+    char buf[256];
+    if (!strcmp(cmd, "users")) {
+        for (auto i: this->players) {
+            int len = sprintf(buf, "%s %d\n", i->data.client->username.c_str(), i->data.client->score);
+            write(client->socketDesc, buf, len);
+        }
+        write(client->socketDesc, "\n", 0);
+    } else if (!strcmp(cmd, "msg")) {
+        char *msg = c->getArgs();
+        if (this->describer >= 0 && this->players[this->describer]->data.client != client && !strcmp(this->game->word.c_str(), msg)) {
+            PPRINTF(this->logger, YELLOW, "User %s guessed the word", client->username.c_str());
+            this->game->round_num++;
+            this->game->seconds_left = 0;
+            sprintf(buf, "Win %s\n", client->username.c_str());
+            client->score++;
+            int len = strlen(buf);
+            for (auto i: this -> players) {
+                write(i->data.client->socketDesc, buf, len);
+            }
+        }
+    } else if (!strcmp(cmd, "leave")) {
+        dprintf(this->__pipeWrite, "back %p", client);
+        this->unassign(ie);
+    } else {
+        PPRINTF(this->logger, GREEN, "Unrecognized command");
+    }
+}
+
+int Room::assign(Client *client) {
+    if (this -> nPlayers == this -> maxPlayers) {
+        PPRINTF(this -> logger, YELLOW, "User %s attempted to join a full room", client->username.c_str());
+        return -1;
+    }
     struct InEvent *ie = new InEvent;
     ie->data = {.client = client };
     ie->src = RoomSource::PLAYER;
@@ -135,6 +177,8 @@ void Room::assign(Client *client) {
         .data= {.ptr = ie}
     };
     this -> players.push_back(ie);
+    client->msgbuf->flush();
+    client->score = 0;
     if (epoll_ctl(this->epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev) == 0) {
         this -> nPlayers++;
         client -> assignedRoom = this;
@@ -144,6 +188,7 @@ void Room::assign(Client *client) {
             this->initGame();
         }
     }
+    return 0;
 }
 
 void Room::unassign(InEvent *ie) {
@@ -155,8 +200,14 @@ void Room::unassign(InEvent *ie) {
             if (i < describer) describer--;
         }
     }
+    ie->data.client->score=0;
     ie->data.client -> assignedRoom = NULL;
     delete ie;
+
+    if (this->nPlayers == 0) {
+        write(this->__pipeWrite, "kill", 5);
+        stop = true;
+    }
 }
 
 int Room::getMaxPlayers() { return this -> maxPlayers; }

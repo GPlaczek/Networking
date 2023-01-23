@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client.hpp"
+#include "msgbuf.hpp"
 #include "log.hpp"
 
 #include <thread>
@@ -30,6 +31,7 @@ class Room {
     struct InEvent *clock_inevent;
     std::vector<struct InEvent*> players;
 
+    bool stop;
     int __pipeRead, __pipeWrite; // room pipe ends
     int epollFd;
     int maxPlayers, nRounds, roundTime;
@@ -38,6 +40,7 @@ class Room {
     Log logger;
     void initTimer();
     void initGame();
+    void runCommand(Command *c, InEvent *ie);
 public:
     int pipeRead, pipeWrite; // server pipe ends
     std::thread threadFd;
@@ -45,7 +48,7 @@ public:
     Room(int maxPlayers, int nRounds, int roundTime);
     ~Room();
     void roomLoop();
-    void assign(Client *client);
+    int assign(Client *client);
     void unassign(InEvent *ie);
 
     int getMaxPlayers();

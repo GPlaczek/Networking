@@ -18,5 +18,6 @@ class Log {
     std::mutex mtx;
 public:
     Log();
+    ~Log();
     void println(int color, const char *func, const char *format, ...);
 };

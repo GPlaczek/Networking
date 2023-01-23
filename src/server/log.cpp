@@ -18,6 +18,10 @@ void Log::get_time() {
     this->pos += strftime(this->buf+pos, 9, "%H:%M:%S", tm_info);
 }
 
+Log::~Log() {
+    delete [] this -> buf;
+}
+
 void Log::println(int color, const char *func, const char *format, ...) {
     this->mtx.lock();
     va_list args;
@@ -57,5 +61,5 @@ void Log::println(int color, const char *func, const char *format, ...) {
 }
 
 Log::Log() {
-    this->buf = (char*)std::malloc(DEFAULT_BUF_SIZE * sizeof(char));
+    this->buf = new char[DEFAULT_BUF_SIZE];
 }
