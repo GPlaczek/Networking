@@ -18,6 +18,7 @@ class MessageBuf {
 public:
     MessageBuf();
     MessageBuf(int size);
+    ~MessageBuf();
     void append(int desc);
     Command *getCommand();
     void shift();

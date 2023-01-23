@@ -18,6 +18,10 @@ void Log::get_time() {
     this->pos += strftime(this->buf+pos, 9, "%H:%M:%S", tm_info);
 }
 
+Log::~Log() {
+    delete [] this -> buf;
+}
+
 void Log::println(int color, const char *func, const char *format, ...) {
     this->mtx.lock();
     va_list args;

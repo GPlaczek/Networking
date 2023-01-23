@@ -213,13 +213,10 @@ public:
 
     void listenLoop() {
         // loop for accepting new connections
-        struct sockaddr *addr;
-        socklen_t addrlen;
         while(1) {
-            addr = new sockaddr;
             // TODO: register new user, ask him for username and add him to some array or vector
             PPRINTF(this->logger, RED, "Waiting for new connections");
-            int newFd = accept(this -> socketFd, addr, &addrlen);
+            int newFd = accept(this -> socketFd, NULL, NULL);
             if (newFd == -1) {
                 perror("Too many open files");
                 exit(1);
@@ -231,7 +228,8 @@ public:
             })
             PPRINTF(this->logger, RED, "Accepted a new connection");
 
-            Client *client = new Client((sockaddr_in*)addr, newFd, NULL, MessageBuf(DEFAULT_MSGBUF_LEN));
+            Client *client;
+            client = new Client(newFd, NULL, DEFAULT_MSGBUF_LEN);
 
             PPRINTF(this->logger, RED, "Adding new connection to epoll");
             // TODO: this leaks when user disconnects while in a room
@@ -272,10 +270,10 @@ public:
                     this->removeUser(client);
                     delete sender;
                 } else if (incomming.events & EPOLLIN) {
-                    client->msgbuf.append(client->socketDesc);
+                    client->msgbuf->append(client->socketDesc);
                     Command *c;
                     while (1) {
-                        c = client->msgbuf.getCommand();
+                        c = client->msgbuf->getCommand();
                         if (c == NULL) { break; };
                         if (client->username.empty()) {
                             // If the user didn't give a name, the first message he sends is his name
@@ -296,7 +294,7 @@ public:
                         this->runCommand(c, client);
                         delete c;
                     }
-                    client->msgbuf.shift();
+                    client->msgbuf->shift();
                 } else {
                     fprintf(stderr, "Possible missing epoll event");
                     exit(1);

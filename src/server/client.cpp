@@ -4,17 +4,15 @@
 #include <string>
 
 Client::~Client() {
-    delete this->address;
+    delete this -> msgbuf;
 }
 
 Client::Client(
-    sockaddr_in *address,
     int socketDesc,
     Room *assignedRoom,
-    MessageBuf msgbuf
+    int msgbufLen
 ) {
-    this->address = address;
     this->socketDesc=socketDesc;
     this->assignedRoom = assignedRoom;
-    this->msgbuf = msgbuf;
+    this->msgbuf = new MessageBuf(msgbufLen);
 }

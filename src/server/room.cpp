@@ -119,10 +119,10 @@ void Room::roomLoop() {
             } else if (incomming.events & EPOLLERR) {
                 PPRINTF(this->logger, YELLOW, "EROR");
             } else {
-                client->msgbuf.append(client->socketDesc);
+                client->msgbuf->append(client->socketDesc);
                 Command *c;
                 while (1) {
-                    c = client->msgbuf.getCommand();
+                    c = client->msgbuf->getCommand();
                     if (c == NULL) break;
                     this -> runCommand(c, ievent);
                     delete c;
@@ -177,7 +177,7 @@ int Room::assign(Client *client) {
         .data= {.ptr = ie}
     };
     this -> players.push_back(ie);
-    client->msgbuf.flush();
+    client->msgbuf->flush();
     client->score = 0;
     if (epoll_ctl(this->epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev) == 0) {
         this -> nPlayers++;

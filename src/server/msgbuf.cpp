@@ -1,11 +1,13 @@
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "msgbuf.hpp"
 
 MessageBuf::MessageBuf(){}
 
 MessageBuf::MessageBuf(int size) {
+    printf("Debuggin\n");
     this -> buf = new char[size];
     memset(buf, 0, size);
     this -> bufSize = size;
@@ -13,8 +15,13 @@ MessageBuf::MessageBuf(int size) {
     this -> bufPos = 0;
 }
 
+MessageBuf::~MessageBuf() {
+    printf("Deletin\n");
+    delete [] this -> buf;
+}
+
 void MessageBuf::append(int desc) {
-    int len = read(desc, this->buf + this->contentLen, this->bufSize - this->contentLen);
+    int len = read(desc, this->buf + this->contentLen, this->bufSize - this->contentLen - 1);
     this -> contentLen += len;
 }
 
