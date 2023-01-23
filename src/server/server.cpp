@@ -272,7 +272,16 @@ public:
                         if (c == NULL) { break; };
                         if (client->username.empty()) {
                             // If the user didn't give a name, the first message he sends is his name
-                            client->username = c->getCommand();
+                            char *name = c->getCommand();
+                            char taken = 0;
+                            for (auto i: this -> clients) {
+                                if (!strcmp(i->username.c_str(), name)) {
+                                    dprintf(client->socketDesc, "username taken\n");
+                                    taken = 1;
+                                }
+                            }
+                            if (taken) continue;
+                            client->username = name;
                             PPRINTF(this->logger, BLUE, "User %d registered as %s", client->socketDesc, client->username.c_str());
                             client->assignedRoom = NULL;
                             continue;
