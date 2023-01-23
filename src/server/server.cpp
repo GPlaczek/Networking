@@ -47,13 +47,19 @@ class Server {
     Log logger;
 
     int epollFd;
-    // TODO: protect this vector with a mutex
+    #define CLIENTS_MUTEX(a) \
+        this->clients_mtx.lock(); \
+        a \
+        this->clients_mtx.unlock();
+    std::mutex clients_mtx;
     std::vector <Client*> clients;
 
     // TODO: if clients was an unordered map, this function could be much faster
     void removeUser(Client *user) {
         PPRINTF(this->logger, GREEN, "Removing user %s from the server", user->username.c_str());
-        this -> clients.erase(std::remove(this->clients.begin(), this->clients.end(), user), this->clients.end());
+        CLIENTS_MUTEX(this -> clients.erase(
+            std::remove(this->clients.begin(), this->clients.end(), user),
+            this->clients.end());)
         epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL);
         close(user -> socketDesc);
         delete user;
@@ -175,7 +181,7 @@ public:
         } else if (!strcmp(cmd, "msg")) {
             PPRINTF(this->logger, BLUE, "User %s sent: %s", client->username.c_str(), args);
         } else if (!strcmp(cmd, "users")) {
-            for (auto i: this->clients) {
+            CLIENTS_MUTEX(for (auto i: this->clients) {
                 int len;
                 if (i->assignedRoom == NULL) {
                     len = sprintf(buf, "%s\n", i->username.c_str());
@@ -184,7 +190,7 @@ public:
                         i->username.c_str(), i->assignedRoom->name.c_str());
                 }
                 write(client->socketDesc, buf, len);
-            }
+            })
             write(client->socketDesc, "\n", 1);
         } else if (!strcmp(cmd, "rooms")) {
             for (int i = 0; i < this->rooms.size(); i++) {
@@ -234,7 +240,7 @@ public:
             epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, newFd, &ev);
 
             PPRINTF(this->logger, RED, "Adding new client to clients vector");
-            this->clients.push_back(client);
+            CLIENTS_MUTEX(this->clients.push_back(client);)
         }
     }
 
