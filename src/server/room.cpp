@@ -13,6 +13,9 @@
 #include <algorithm>
 
 void Room::initGame() {
+    for (auto i: this -> players) {
+        dprintf(i->data.client->socketDesc, "start\n");
+    }
     this->game = new struct game;
     this->game->round_num = 0;
     this->game->seconds_left = 0;
