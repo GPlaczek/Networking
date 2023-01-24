@@ -1,6 +1,6 @@
 #include "lobby.h"
-#include "waitingroom.h"
 #include "ui_lobby.h"
+#include "waitingroom.h"
 
 #include <unistd.h>
 #include <iostream>
@@ -63,7 +63,7 @@ void Lobby::joinRoom(QListWidgetItem *item) {
         qDebug() << servMsg;
 
         this->close();
-        waitingRoom = new WaitingRoom(nullptr);
+        waitingRoom = new WaitingRoom(nullptr, this->socket);
         waitingRoom->show();
     }
 }
@@ -72,18 +72,23 @@ void Lobby::createRoom() {
     ui->msgText->clear();
     ui->msgText->setAlignment(Qt::AlignCenter);
     QString roomName = ui->roomName->text().trimmed();
+    QString maxPlayers = ui->maxPlayers->text();
+    QString nRounds = ui->nRounds->text();
+    QString roundTime = ui->roundTime->text();
+
+    qDebug() << maxPlayers << " " << nRounds << " " << roundTime << "\n";
 
     if(roomName != "") {
         ui->msgText->hide();
-        QByteArray roomNameUtf8 = ("create "+roomName+'\n').toUtf8();
+        QByteArray roomNameUtf8 = ("create "+roomName+' '+maxPlayers+' '+nRounds+' '+roundTime+'\n').toUtf8();
         this->socket->write(roomNameUtf8);
 
         if(this->socket->waitForReadyRead(3000)) {
             QString servMsg = this->socket->readAll();
             qDebug() << servMsg;
-
+            //TODO: check if successfull
             this->close();
-            waitingRoom = new WaitingRoom(nullptr);
+            waitingRoom = new WaitingRoom(nullptr, this->socket);
             waitingRoom->show();
         }
     } else {

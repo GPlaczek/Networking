@@ -26,7 +26,6 @@ public:
     QLabel *label_3;
     QListWidget *usersList;
     QLabel *label_6;
-    QPushButton *createRoomBtn;
     QTextEdit *msgText;
     QPushButton *disconnectBtn;
     QPushButton *toLobbyBtn;
@@ -59,9 +58,6 @@ public:
         label_6->setGeometry(QRect(140, 150, 201, 31));
         label_6->setFont(font1);
         label_6->setAlignment(Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter);
-        createRoomBtn = new QPushButton(WaitingRoom);
-        createRoomBtn->setObjectName("createRoomBtn");
-        createRoomBtn->setGeometry(QRect(470, 330, 231, 41));
         msgText = new QTextEdit(WaitingRoom);
         msgText->setObjectName("msgText");
         msgText->setEnabled(true);
@@ -91,7 +87,6 @@ public:
         refreshUserListBtn->setText(QCoreApplication::translate("WaitingRoom", "Refresh room list", nullptr));
         label_3->setText(QCoreApplication::translate("WaitingRoom", "Waiting room", nullptr));
         label_6->setText(QCoreApplication::translate("WaitingRoom", "Users", nullptr));
-        createRoomBtn->setText(QCoreApplication::translate("WaitingRoom", "Start a game", nullptr));
         msgText->setHtml(QCoreApplication::translate("WaitingRoom", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"

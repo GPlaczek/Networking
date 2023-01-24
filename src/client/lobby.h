@@ -1,16 +1,17 @@
-#ifndef LOBBY_H
-#define LOBBY_H
+#pragma once
 
 #include <QDialog>
 #include <QTcpSocket>
 #include <QTimer>
 #include <QListWidget>
 #include <sys/socket.h>
-#include "waitingroom.h"
 
 namespace Ui {
 class Lobby;
 }
+
+class WaitingRoom;
+#include "waitingroom.h"
 
 class Lobby : public QDialog
 {
@@ -33,5 +34,3 @@ private:
     Ui::Lobby *ui;
     WaitingRoom *waitingRoom;
 };
-
-#endif // LOBBY_H

@@ -1,5 +1,4 @@
-#ifndef ROOMGAME_H
-#define ROOMGAME_H
+#pragma once
 
 #include <QDialog>
 
@@ -18,5 +17,3 @@ public:
 private:
     Ui::RoomGame *ui;
 };
-
-#endif // ROOMGAME_H
