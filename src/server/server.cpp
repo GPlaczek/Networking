@@ -72,7 +72,9 @@ class Server {
         CLIENTS_MUTEX(this -> clients.erase(
             std::remove(this->clients.begin(), this->clients.end(), user),
             this->clients.end());)
-        this->internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL));
+        if (user->assignedRoom == NULL) {
+            internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL));
+        }
         close(user -> socketDesc);
         delete user;
     }
@@ -259,7 +261,6 @@ public:
 
             PPRINTF(this->logger, RED, "Adding new client to clients vector");
             CLIENTS_MUTEX(this->clients.push_back(client);)
-            this->internal_error(1);
         }
     }
 
@@ -329,6 +330,7 @@ public:
                     } else if (!strcmp(cmd, "back")) {
                         Client *client;
                         sscanf(args, "%p", &client);
+                        client -> assignedRoom = NULL;
                         struct Sender *s1 = new Sender;
                         s1->data = { .client = client };
                         s1->src = Source::CLIENT;
