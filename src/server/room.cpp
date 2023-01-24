@@ -114,8 +114,8 @@ void Room::roomLoop() {
             if (incomming.events & EPOLLRDHUP) {
                 PPRINTF(this->logger, YELLOW,
                     "Client %s closed the connection", client->username.c_str());
-                this->unassign(ievent);
                 dprintf(this->__pipeWrite, "remove %p", client);
+                this->unassign(ievent);
             } else if (incomming.events & EPOLLERR) {
                 PPRINTF(this->logger, YELLOW, "EROR");
             } else {
@@ -141,7 +141,7 @@ void Room::runCommand(Command *c, InEvent *ie) {
             int len = sprintf(buf, "%s %d\n", i->data.client->username.c_str(), i->data.client->score);
             write(client->socketDesc, buf, len);
         }
-        write(client->socketDesc, "\n", 0);
+        write(client->socketDesc, "\n", 1);
     } else if (!strcmp(cmd, "msg")) {
         char *msg = c->getArgs();
         if (this->describer >= 0 && this->players[this->describer]->data.client != client && !strcmp(this->game->word.c_str(), msg)) {
