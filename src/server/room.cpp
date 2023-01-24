@@ -154,6 +154,11 @@ void Room::runCommand(Command *c, InEvent *ie) {
             for (auto i: this -> players) {
                 write(i->data.client->socketDesc, buf, len);
             }
+        } else {
+            for (auto i: this -> players) {
+                dprintf(i->data.client->socketDesc,
+                    "%d %s %s", i == this->players[this->describer], client->username.c_str(), msg);
+            }
         }
     } else if (!strcmp(cmd, "leave")) {
         dprintf(this->__pipeWrite, "back %p", client);
