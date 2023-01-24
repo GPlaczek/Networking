@@ -118,7 +118,7 @@ public:
         if (room->assign(client) == 0) {
             this -> internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL));
         } else {
-            dprintf(client->socketDesc, "room full\n");
+            write(client->socketDesc, "-1\n", 3);
         }
     }
 
@@ -184,14 +184,16 @@ public:
             sscanf(args, "%d", &room);
             PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
             if (client->assignedRoom != NULL) {
+                // this should never happen so let's just hope it really doesn't
                 PPRINTF(this->logger, BLUE, "User %s is already assigned to a room %s", client->username.c_str(), client->assignedRoom->name.c_str());
                 message = "You are already assigned to the room " + client->assignedRoom->name + "\n";
                 write(client->socketDesc, message.c_str(), message.length() + 1);
             } else {
                 try {
                     this -> assignToRoom(client, this->rooms.at(room));
+                    write(client->socketDesc, "0\n", 2);
                 } catch (...) {
-                    write(client->socketDesc, "No such room\n", 14);
+                    write(client->socketDesc, "-1\n", 3);
                 }
             }
         } else if (!strcmp(cmd, "msg")) {
