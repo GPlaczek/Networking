@@ -136,12 +136,13 @@ public:
             } else {
                 //check if room name is unique
                 bool unique = true;
+                char name[64]; // constrained on client
+                sscanf(args, "%s", name);
                 for (int i = 0; i < this->rooms.size(); i++) {
                     if (this->rooms[i]->name == args) {
                         unique = false;
                         PPRINTF(this->logger, RED, "Room name %s is not unique", args);
-                        message = "Please enter different room name. This one is not unique\n";
-                        write(client->socketDesc, message.c_str(), message.length() + 1);
+                        write(client->socketDesc, "-1\n", 3);
                         break;
                     }
                 }
@@ -174,8 +175,7 @@ public:
                     };
 
                     this -> internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_ADD, room->pipeRead, &ev));
-                    message = "Room " + room->name + " successfully created\n";                       
-                    write(client->socketDesc, message.c_str(), message.length() + 1);
+                    write(client->socketDesc, "0\n", 2);
                 }
             }
         } else if (!strcmp(cmd, "join")) {
