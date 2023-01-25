@@ -72,9 +72,10 @@ class Server {
         CLIENTS_MUTEX(this -> clients.erase(
             std::remove(this->clients.begin(), this->clients.end(), user),
             this->clients.end());)
-        if (user->assignedRoom == NULL) {
-            internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL));
-        }
+        // We ignore return value as client might not be in the epoll when unassigning
+        // This happens when user disconnects while in a room
+        // TODO: datect this and don't bother the kernel needlessly
+        epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL);
         close(user -> socketDesc);
         delete user;
     }
@@ -118,7 +119,7 @@ public:
         if (room->assign(client) == 0) {
             this -> internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, client->socketDesc, NULL));
         } else {
-            dprintf(client->socketDesc, "room full\n");
+            write(client->socketDesc, "-1\n", 3);
         }
     }
 
@@ -184,14 +185,16 @@ public:
             sscanf(args, "%d", &room);
             PPRINTF(this->logger, BLUE, "User %s wants to join %d", client->username.c_str(), room);
             if (client->assignedRoom != NULL) {
+                // this should never happen so let's just hope it really doesn't
                 PPRINTF(this->logger, BLUE, "User %s is already assigned to a room %s", client->username.c_str(), client->assignedRoom->name.c_str());
                 message = "You are already assigned to the room " + client->assignedRoom->name + "\n";
                 write(client->socketDesc, message.c_str(), message.length() + 1);
             } else {
                 try {
                     this -> assignToRoom(client, this->rooms.at(room));
+                    write(client->socketDesc, "0\n", 2);
                 } catch (...) {
-                    write(client->socketDesc, "No such room\n", 14);
+                    write(client->socketDesc, "-1\n", 3);
                 }
             }
         } else if (!strcmp(cmd, "msg")) {
@@ -288,6 +291,7 @@ public:
                     client->msgbuf->append(client->socketDesc);
                     Command *c;
                     while (1) {
+                        if (client -> assignedRoom != NULL) break;
                         c = client->msgbuf->getCommand();
                         if (c == NULL) { break; };
                         if (client->username.empty()) {
@@ -342,6 +346,16 @@ public:
 
                         this->internal_error(
                             epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev));
+                        Command *c;
+                        while(1) {
+                            // If there are some commands left in message buffer after moving client back
+                            PPRINTF(this->logger, RED, "Moving commands from the room context");
+                            if (client -> assignedRoom != NULL) break;
+                            c = client->msgbuf->getCommand();
+                            if (c == NULL) break;
+                            this->runCommand(c, client);
+                            delete c;
+                        }
                     } else if (!strcmp(cmd, "kill")) {
                         this->rooms.erase(
                             std::remove(this->rooms.begin(), this->rooms.end(), room),

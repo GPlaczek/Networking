@@ -1,5 +1,4 @@
-#ifndef GUI_H
-#define GUI_H
+#pragma once
 
 #include "lobby.h"
 #include <QMainWindow>
@@ -26,4 +25,3 @@ private:
     Ui::Gui *ui;
     Lobby *lobby;
 };
-#endif // GUI_H

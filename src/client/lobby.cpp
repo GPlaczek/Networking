@@ -1,6 +1,6 @@
 #include "lobby.h"
-#include "waitingroom.h"
 #include "ui_lobby.h"
+#include "waitingroom.h"
 
 #include <unistd.h>
 #include <iostream>
@@ -62,9 +62,18 @@ void Lobby::joinRoom(QListWidgetItem *item) {
         QString servMsg = this->socket->readAll();
         qDebug() << servMsg;
 
-        this->close();
-        waitingRoom = new WaitingRoom(nullptr);
-        waitingRoom->show();
+        if(servMsg == "0\n") {
+            this->close();
+            this->waitingRoom = new WaitingRoom(nullptr, this->socket);
+            this->waitingRoom->show();
+        } else if(servMsg == "start\n0\n") { //third person in room - game starts
+            this->close();
+            this->roomGame = new RoomGame(nullptr, this->socket);
+            this->roomGame->show();
+        } else {
+            ui->msgText->show();
+            ui->msgText->append("Could not join the room");
+        }
     }
 }
 
@@ -72,19 +81,28 @@ void Lobby::createRoom() {
     ui->msgText->clear();
     ui->msgText->setAlignment(Qt::AlignCenter);
     QString roomName = ui->roomName->text().trimmed();
+    QString maxPlayers = ui->maxPlayers->text();
+    QString nRounds = ui->nRounds->text();
+    QString roundTime = ui->roundTime->text();
+
+    qDebug() << maxPlayers << " " << nRounds << " " << roundTime << "\n";
 
     if(roomName != "") {
         ui->msgText->hide();
-        QByteArray roomNameUtf8 = ("create "+roomName+'\n').toUtf8();
+        QByteArray roomNameUtf8 = ("create "+roomName+' '+maxPlayers+' '+nRounds+' '+roundTime+'\n').toUtf8();
         this->socket->write(roomNameUtf8);
 
         if(this->socket->waitForReadyRead(3000)) {
             QString servMsg = this->socket->readAll();
             qDebug() << servMsg;
-
-            this->close();
-            waitingRoom = new WaitingRoom(nullptr);
-            waitingRoom->show();
+            if(servMsg == "0\n") {
+                this->close();
+                this->waitingRoom = new WaitingRoom(nullptr, this->socket);
+                this->waitingRoom->show();
+            } else {
+                ui->msgText->show();
+                ui->msgText->append("Could not create the room");
+            }
         }
     } else {
         ui->msgText->show();
