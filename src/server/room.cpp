@@ -236,7 +236,7 @@ void Room::unassign(InEvent *ie) {
     for (int i = 0; i < this->players.size(); i++) {
         if (this->players[i] == ie) {
             this -> players.erase(this->players.begin() + i);
-            if (i < describer) describer--;
+            if (i <= describer) describer--;
         }
     }
     ie->data.client->score=0;
