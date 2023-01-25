@@ -60,7 +60,6 @@ void Lobby::joinRoom(QListWidgetItem *item) {
 
     if(this->socket->waitForReadyRead(3000)) {
         QString servMsg = this->socket->readAll();
-        qDebug() << servMsg;
 
         if(servMsg == "0\n") {
             this->close();
@@ -85,8 +84,6 @@ void Lobby::createRoom() {
     QString nRounds = ui->nRounds->text();
     QString roundTime = ui->roundTime->text();
 
-    qDebug() << maxPlayers << " " << nRounds << " " << roundTime << "\n";
-
     if(roomName != "") {
         ui->msgText->hide();
         QByteArray roomNameUtf8 = ("create "+roomName+' '+maxPlayers+' '+nRounds+' '+roundTime+'\n').toUtf8();
@@ -94,7 +91,6 @@ void Lobby::createRoom() {
 
         if(this->socket->waitForReadyRead(3000)) {
             QString servMsg = this->socket->readAll();
-            qDebug() << servMsg;
             if(servMsg == "0\n") {
                 this->close();
                 this->waitingRoom = new WaitingRoom(nullptr, this->socket, this->username);

@@ -46,7 +46,6 @@ void RoomGame::listUsers() {
             QString items = this->socket->readAll();
             this->imWaiting = false;
             QString item = "";
-            qDebug() << items;
             bool exists = false;
             for (int i = 0; i < items.size(); i++) {
                 if(items[i] == '\n') {
@@ -76,7 +75,6 @@ void RoomGame::disconnect(){
 void RoomGame::toLobby() {
     QString l = "leave";
     QByteArray leaveUtf8 = (l+'\n').toUtf8();
-    qDebug() << leaveUtf8;
     this->socket->write(leaveUtf8);
 
     this->imWaiting = true; //without this, lobby wouldn't get users list
@@ -89,7 +87,7 @@ void RoomGame::socketReadData() {
     if(!this->imWaiting) {
         ui->msgText->clear();
         QString servMsg = this->socket->readAll();
-        qDebug() << servMsg;
+        // qDebug() << servMsg;
         QString command = servMsg.split(" ").at(0);
 
         if(command == "clock") {
@@ -112,7 +110,6 @@ void RoomGame::socketReadData() {
                 if(desc.length() - describer.length() > 1) { //start and describe command are sticked together
                     servMsg = servMsg.split("\n").at(1);
                     command = servMsg.split(" ").at(0);
-                    qDebug() << servMsg << ": " << command;
                 }
             } else {
                 ui->wordToDescribe->clear();

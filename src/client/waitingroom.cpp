@@ -34,7 +34,6 @@ void WaitingRoom::listUsers() {
             QString items = this->socket->readAll();
             this->imWaiting = false;
             QString item = "";
-            qDebug() << items;
             bool exists = false;
             for (int i = 0; i < items.size(); i++) {
                 if(items[i] == ' ') exists = true;
@@ -65,7 +64,6 @@ void WaitingRoom::disconnect(){
 void WaitingRoom::toLobby() {
     QString l = "leave";
     QByteArray leaveUtf8 = (l+'\n').toUtf8();
-    qDebug() << leaveUtf8;
     this->socket->write(leaveUtf8);
 
     this->imWaiting = true; //without this, lobby wouldn't get users list
@@ -77,7 +75,6 @@ void WaitingRoom::toLobby() {
 void WaitingRoom::socketReadData() {
     if(!this->imWaiting) {
         QString servMsg = this->socket->readAll();
-        qDebug() << servMsg;
         if(servMsg == "start\n") {
             this->socket->disconnect(this);
             this->close();
