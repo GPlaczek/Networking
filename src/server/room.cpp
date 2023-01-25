@@ -175,7 +175,7 @@ void Room::runCommand(Command *c, InEvent *ie) {
         if (this->describer >= 0 && this->players[this->describer]->data.client != client && !strcmp(this->game->word.c_str(), msg)) {
             PPRINTF(this->logger, YELLOW, "User %s guessed the word", client->username.c_str());
             this->game->seconds_left = 0;
-            sprintf(buf, "Win %s\n", client->username.c_str());
+            sprintf(buf, "win %s\n", client->username.c_str());
             client->score++;
             int len = strlen(buf);
             for (auto i: this -> players) {
@@ -184,7 +184,7 @@ void Room::runCommand(Command *c, InEvent *ie) {
         } else {
             for (auto i: this -> players) {
                 dprintf(i->data.client->socketDesc,
-                    "%d %s %s", i == this->players[this->describer], client->username.c_str(), msg);
+                    "%d %s %s\n", ie == this->players[this->describer], client->username.c_str(), msg);
             }
         }
     } else if (!strcmp(cmd, "leave")) {
