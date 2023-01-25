@@ -108,7 +108,9 @@ void Room::roomLoop() {
                 this->game->round_num++;
 
                 for (auto i: this -> players) {
-                    dprintf(i->data.client->socketDesc, "start %d\n", this->game->round_num);
+                    dprintf(i->data.client->socketDesc, "start %d %s\n",
+                        this->game->round_num,
+                        this->players[this->describer]->data.client->username.c_str());
                 }
 
                 if (this->describer == this->nPlayers - 1) this -> describer = 0;
