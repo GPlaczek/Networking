@@ -115,6 +115,9 @@ void Room::roomLoop() {
         } else {
             client = ievent->data.client;
             if (incomming.events & EPOLLRDHUP) {
+                if (ievent == this->players[describer]) {
+                    this->game->seconds_left = 0;
+                }
                 PPRINTF(this->logger, YELLOW,
                     "Client %s closed the connection", client->username.c_str());
                 dprintf(this->__pipeWrite, "remove %p", client);
