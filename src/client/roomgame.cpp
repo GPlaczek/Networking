@@ -129,7 +129,7 @@ void RoomGame::socketReadData() {
         }
         else if (command == "1") { //describer sent message
             QString author = servMsg.split(" ").at(1);
-            desc = servMsg.split(" ").at(2);
+            QString desc = servMsg.split(" ").at(2);
             ui->describerText->appendPlainText("<" + author + "> " + desc + '\n');
         }
         else if (command == "0") { //guesser sent message
