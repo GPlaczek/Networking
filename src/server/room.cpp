@@ -222,6 +222,7 @@ void Room::unassign(InEvent *ie) {
         }
     }
     ie->data.client->score=0;
+    ie->data.client->assignedRoom=NULL;
     delete ie;
 
     if (this->nPlayers == 0) {

@@ -72,9 +72,10 @@ class Server {
         CLIENTS_MUTEX(this -> clients.erase(
             std::remove(this->clients.begin(), this->clients.end(), user),
             this->clients.end());)
-        if (user->assignedRoom == NULL) {
-            internal_error(epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL));
-        }
+        // We ignore return value as client might not be in the epoll when unassigning
+        // This happens when user disconnects while in a room
+        // TODO: datect this and don't bother the kernel needlessly
+        epoll_ctl(this->epollFd, EPOLL_CTL_DEL, user->socketDesc, NULL);
         close(user -> socketDesc);
         delete user;
     }
