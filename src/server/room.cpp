@@ -13,9 +13,6 @@
 #include <algorithm>
 
 void Room::initGame() {
-    for (auto i: this -> players) {
-        dprintf(i->data.client->socketDesc, "start\n");
-    }
     this->game = new struct game;
     this->game->round_num = 0;
     this->game->seconds_left = 0;
@@ -96,25 +93,42 @@ void Room::roomLoop() {
         if (ievent->src == RoomSource::CLOCK) {
             read(ievent->data.clock_fd, buf, 8);
             if (this->game->seconds_left == 0) {
+                if (this->game->round_num == this->nRounds) {
+                    close(this->clock_inevent->data.clock_fd);
+                    delete this->clock_inevent;
+                    this -> clock_inevent = NULL;
+                    for (auto i: this -> players) {
+                        dprintf(i->data.client->socketDesc, "end\n");
+                    }
+                    continue;
+                }
                 this->game->word = Words::get_word();
                 PPRINTF(this->logger, YELLOW, "The new word is %s", this->game->word.c_str());
                 this->game->seconds_left = this->roundTime;
+                this->game->round_num++;
+
+                for (auto i: this -> players) {
+                    dprintf(i->data.client->socketDesc, "start %d\n", this->game->round_num);
+                }
+
                 if (this->describer == this->nPlayers - 1) this -> describer = 0;
                 else this -> describer++;
+
                 sprintf(buf, "describe %s\n", this->game->word.c_str());
                 write(this->players[describer]->data.client->socketDesc, buf, strlen(buf));
             } else {
                 PPRINTF(this->logger, GREEN, "Tik Tok %d seconds left", this->game->seconds_left);
                 this->game->seconds_left--;
-            }
-            sprintf(buf, "clock %d\n", this->game->seconds_left);
-            int len = strlen(buf);
-            for (int i = 0; i < this -> players.size(); i++) {
-                write(this->players[i]->data.client->socketDesc, buf, len);
+                for (int i = 0; i < this -> players.size(); i++) {
+                    dprintf(this->players[i]->data.client->socketDesc, "clock %d\n", this->game->seconds_left);
+                }
             }
         } else {
             client = ievent->data.client;
             if (incomming.events & EPOLLRDHUP) {
+                if (ievent == this->players[describer]) {
+                    this->game->seconds_left = 0;
+                }
                 PPRINTF(this->logger, YELLOW,
                     "Client %s closed the connection", client->username.c_str());
                 dprintf(this->__pipeWrite, "remove %p", client);
@@ -155,7 +169,6 @@ void Room::runCommand(Command *c, InEvent *ie) {
         char *msg = c->getArgs();
         if (this->describer >= 0 && this->players[this->describer]->data.client != client && !strcmp(this->game->word.c_str(), msg)) {
             PPRINTF(this->logger, YELLOW, "User %s guessed the word", client->username.c_str());
-            this->game->round_num++;
             this->game->seconds_left = 0;
             sprintf(buf, "Win %s\n", client->username.c_str());
             client->score++;
