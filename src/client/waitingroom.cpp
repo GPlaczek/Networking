@@ -1,6 +1,7 @@
 #include "waitingroom.h"
 #include "ui_waitingroom.h"
 #include <QMessageBox>
+#include <time.h>
 
 WaitingRoom::WaitingRoom(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::WaitingRoom) {
     ui->setupUi(this);
@@ -9,8 +10,6 @@ WaitingRoom::WaitingRoom(QWidget *parent, QTcpSocket *socket) : QDialog(parent),
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &WaitingRoom::disconnect);
     connect(ui->toLobbyBtn, &QPushButton::clicked, this, &WaitingRoom::toLobby);
     connect(this->socket, &QTcpSocket::readyRead, this, &WaitingRoom::socketReadData);
-    //TODO: Back to Lobby
-
 }
 
 WaitingRoom::~WaitingRoom()
@@ -22,11 +21,13 @@ void WaitingRoom::listUsers() {
     ui->usersList->clear();
     QString listUsers = "users";
     QByteArray listUsersUtf8 = (listUsers+'\n').toUtf8();
+    imWaiting = true;
     this->socket->write(listUsersUtf8);
 
     while (1) {
         if(this->socket->waitForReadyRead(3000)) {
             QString items = this->socket->readAll();
+            imWaiting = false;
             QString item = "";
             qDebug() << items;
             bool exists = false;
@@ -43,6 +44,7 @@ void WaitingRoom::listUsers() {
             }
         }
     }
+    imWaiting = false;
 }
 
 void WaitingRoom::disconnect(){
@@ -61,18 +63,26 @@ void WaitingRoom::toLobby() {
     qDebug() << leaveUtf8;
     this->socket->write(leaveUtf8);
 
+    imWaiting = true; //without this, lobby wouldn't get users list
     this->close();
     this->lobby = new Lobby(nullptr, this->socket);
     this->lobby->show();
 }
 
 void WaitingRoom::socketReadData() {
-    if(this->socket->waitForReadyRead(300)) {
+    if(imWaiting == false) {
         QString servMsg = this->socket->readAll();
+        qDebug("nasluch");
         qDebug() << servMsg;
-        ui->msgText->clear();
-        ui->msgText->setAlignment(Qt::AlignCenter);
-        ui->msgText->show();
-        ui->msgText->append(servMsg);
+        if(servMsg == "start\n") {
+            this->close();
+            this->roomGame = new RoomGame(nullptr, this->socket);
+            this->roomGame->show();
+        } else {
+            ui->msgText->clear();
+            ui->msgText->setAlignment(Qt::AlignCenter);
+            ui->msgText->show();
+            ui->msgText->append(servMsg);
+        }
     }
 }

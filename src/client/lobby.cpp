@@ -62,9 +62,18 @@ void Lobby::joinRoom(QListWidgetItem *item) {
         QString servMsg = this->socket->readAll();
         qDebug() << servMsg;
 
-        this->close();
-        waitingRoom = new WaitingRoom(nullptr, this->socket);
-        waitingRoom->show();
+        if(servMsg == "0\n") {
+            this->close();
+            this->waitingRoom = new WaitingRoom(nullptr, this->socket);
+            this->waitingRoom->show();
+        } else if(servMsg == "start\n0\n") { //third person in room - game starts
+            this->close();
+            this->roomGame = new RoomGame(nullptr, this->socket);
+            this->roomGame->show();
+        } else {
+            ui->msgText->show();
+            ui->msgText->append("Could not join the room");
+        }
     }
 }
 
@@ -86,10 +95,14 @@ void Lobby::createRoom() {
         if(this->socket->waitForReadyRead(3000)) {
             QString servMsg = this->socket->readAll();
             qDebug() << servMsg;
-            //TODO: check if successfull
-            this->close();
-            waitingRoom = new WaitingRoom(nullptr, this->socket);
-            waitingRoom->show();
+            if(servMsg == "0\n") {
+                this->close();
+                this->waitingRoom = new WaitingRoom(nullptr, this->socket);
+                this->waitingRoom->show();
+            } else {
+                ui->msgText->show();
+                ui->msgText->append("Could not create the room");
+            }
         }
     } else {
         ui->msgText->show();

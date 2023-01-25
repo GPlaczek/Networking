@@ -2,6 +2,7 @@
 
 #include <QDialog>
 #include <QTcpSocket>
+#include "roomgame.h"
 
 namespace Ui {
 class WaitingRoom;
@@ -26,6 +27,8 @@ protected:
     void socketReadData();
 
 private:
+    bool imWaiting = false;
     Ui::WaitingRoom *ui;
     Lobby *lobby;
+    RoomGame *roomGame;
 };

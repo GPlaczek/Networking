@@ -12,6 +12,8 @@ class Lobby;
 
 class WaitingRoom;
 #include "waitingroom.h"
+class RoomGame;
+#include "roomgame.h"
 
 class Lobby : public QDialog
 {
@@ -33,4 +35,5 @@ protected:
 private:
     Ui::Lobby *ui;
     WaitingRoom *waitingRoom;
+    RoomGame *roomGame;
 };
