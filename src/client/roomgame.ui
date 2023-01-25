@@ -19,30 +19,17 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QPushButton" name="sendDescBtn">
+  <widget class="QPushButton" name="sendBtn">
    <property name="geometry">
     <rect>
      <x>30</x>
      <y>760</y>
-     <width>381</width>
+     <width>791</width>
      <height>41</height>
     </rect>
    </property>
    <property name="text">
-    <string>Send description</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="sendGuessBtn">
-   <property name="geometry">
-    <rect>
-     <x>450</x>
-     <y>760</y>
-     <width>371</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Send guess</string>
+    <string>Send </string>
    </property>
   </widget>
   <widget class="QTextEdit" name="timeLeft">
@@ -65,6 +52,9 @@
    </property>
    <property name="lineWidth">
     <number>1</number>
+   </property>
+   <property name="verticalScrollBarPolicy">
+    <enum>Qt::ScrollBarAlwaysOff</enum>
    </property>
    <property name="horizontalScrollBarPolicy">
     <enum>Qt::ScrollBarAlwaysOff</enum>
@@ -122,31 +112,12 @@ li.checked::marker { content: &quot;\2612&quot;; }
     <string>gf</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="describerLine">
-   <property name="geometry">
-    <rect>
-     <x>450</x>
-     <y>680</y>
-     <width>371</width>
-     <height>51</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Lato</family>
-     <pointsize>16</pointsize>
-    </font>
-   </property>
-   <property name="maxLength">
-    <number>128</number>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="guesserLine">
+  <widget class="QLineEdit" name="sendLine">
    <property name="geometry">
     <rect>
      <x>30</x>
      <y>680</y>
-     <width>381</width>
+     <width>791</width>
      <height>51</height>
     </rect>
    </property>
@@ -261,6 +232,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
    <property name="lineWidth">
     <number>1</number>
    </property>
+   <property name="verticalScrollBarPolicy">
+    <enum>Qt::ScrollBarAsNeeded</enum>
+   </property>
    <property name="horizontalScrollBarPolicy">
     <enum>Qt::ScrollBarAlwaysOff</enum>
    </property>
@@ -298,6 +272,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
    </property>
    <property name="lineWidth">
     <number>1</number>
+   </property>
+   <property name="verticalScrollBarPolicy">
+    <enum>Qt::ScrollBarAlwaysOff</enum>
    </property>
    <property name="horizontalScrollBarPolicy">
     <enum>Qt::ScrollBarAlwaysOff</enum>

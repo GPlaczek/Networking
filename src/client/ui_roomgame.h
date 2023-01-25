@@ -23,14 +23,12 @@ QT_BEGIN_NAMESPACE
 class Ui_RoomGame
 {
 public:
-    QPushButton *sendDescBtn;
-    QPushButton *sendGuessBtn;
+    QPushButton *sendBtn;
     QTextEdit *timeLeft;
     QPushButton *disconnectBtn;
     QPushButton *toLobbyBtn;
     QPlainTextEdit *describerText;
-    QLineEdit *describerLine;
-    QLineEdit *guesserLine;
+    QLineEdit *sendLine;
     QPlainTextEdit *guesserText;
     QPushButton *refreshUserListBtn;
     QListWidget *usersList;
@@ -47,12 +45,9 @@ public:
         font.setFamilies({QString::fromUtf8("Lato")});
         font.setPointSize(16);
         RoomGame->setFont(font);
-        sendDescBtn = new QPushButton(RoomGame);
-        sendDescBtn->setObjectName("sendDescBtn");
-        sendDescBtn->setGeometry(QRect(30, 760, 381, 41));
-        sendGuessBtn = new QPushButton(RoomGame);
-        sendGuessBtn->setObjectName("sendGuessBtn");
-        sendGuessBtn->setGeometry(QRect(450, 760, 371, 41));
+        sendBtn = new QPushButton(RoomGame);
+        sendBtn->setObjectName("sendBtn");
+        sendBtn->setGeometry(QRect(30, 760, 791, 41));
         timeLeft = new QTextEdit(RoomGame);
         timeLeft->setObjectName("timeLeft");
         timeLeft->setEnabled(true);
@@ -62,6 +57,7 @@ public:
         font1.setPointSize(18);
         timeLeft->setFont(font1);
         timeLeft->setLineWidth(1);
+        timeLeft->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         timeLeft->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         timeLeft->setReadOnly(true);
         disconnectBtn = new QPushButton(RoomGame);
@@ -73,16 +69,11 @@ public:
         describerText = new QPlainTextEdit(RoomGame);
         describerText->setObjectName("describerText");
         describerText->setGeometry(QRect(30, 190, 381, 461));
-        describerLine = new QLineEdit(RoomGame);
-        describerLine->setObjectName("describerLine");
-        describerLine->setGeometry(QRect(450, 680, 371, 51));
-        describerLine->setFont(font);
-        describerLine->setMaxLength(128);
-        guesserLine = new QLineEdit(RoomGame);
-        guesserLine->setObjectName("guesserLine");
-        guesserLine->setGeometry(QRect(30, 680, 381, 51));
-        guesserLine->setFont(font);
-        guesserLine->setMaxLength(128);
+        sendLine = new QLineEdit(RoomGame);
+        sendLine->setObjectName("sendLine");
+        sendLine->setGeometry(QRect(30, 680, 791, 51));
+        sendLine->setFont(font);
+        sendLine->setMaxLength(128);
         guesserText = new QPlainTextEdit(RoomGame);
         guesserText->setObjectName("guesserText");
         guesserText->setGeometry(QRect(450, 190, 371, 461));
@@ -110,6 +101,7 @@ public:
         msgText->setGeometry(QRect(340, 0, 491, 70));
         msgText->setFont(font1);
         msgText->setLineWidth(1);
+        msgText->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         msgText->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         msgText->setReadOnly(true);
         roundNum = new QTextEdit(RoomGame);
@@ -118,6 +110,7 @@ public:
         roundNum->setGeometry(QRect(0, 0, 271, 70));
         roundNum->setFont(font1);
         roundNum->setLineWidth(1);
+        roundNum->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         roundNum->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         roundNum->setReadOnly(true);
 
@@ -129,8 +122,7 @@ public:
     void retranslateUi(QDialog *RoomGame)
     {
         RoomGame->setWindowTitle(QCoreApplication::translate("RoomGame", "Dialog", nullptr));
-        sendDescBtn->setText(QCoreApplication::translate("RoomGame", "Send description", nullptr));
-        sendGuessBtn->setText(QCoreApplication::translate("RoomGame", "Send guess", nullptr));
+        sendBtn->setText(QCoreApplication::translate("RoomGame", "Send ", nullptr));
         timeLeft->setHtml(QCoreApplication::translate("RoomGame", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"

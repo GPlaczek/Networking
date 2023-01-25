@@ -24,8 +24,7 @@ protected:
     void disconnect();
     void toLobby();
     void socketReadData();
-    void sendDescription();
-    void sendGuess();
+    void sendText();
 
 private:
     QString username;
