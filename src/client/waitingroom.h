@@ -2,7 +2,6 @@
 
 #include <QDialog>
 #include <QTcpSocket>
-#include "roomgame.h"
 
 namespace Ui {
 class WaitingRoom;
@@ -10,6 +9,8 @@ class WaitingRoom;
 
 class Lobby;
 #include "lobby.h"
+class RoomGame;
+#include "roomgame.h"
 
 class WaitingRoom : public QDialog
 {

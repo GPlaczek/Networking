@@ -1,10 +1,12 @@
 #include "waitingroom.h"
 #include "ui_waitingroom.h"
 #include <QMessageBox>
-#include <time.h>
 
 WaitingRoom::WaitingRoom(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::WaitingRoom) {
     ui->setupUi(this);
+    ui->msgText->hide();
+    ui->msgText->setStyleSheet("QTextEdit { background-color : transparent; color : #de0a26; }");
+
     this->socket = socket;
     connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listUsers();});
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &WaitingRoom::disconnect);
@@ -72,7 +74,6 @@ void WaitingRoom::toLobby() {
 void WaitingRoom::socketReadData() {
     if(imWaiting == false) {
         QString servMsg = this->socket->readAll();
-        qDebug("nasluch");
         qDebug() << servMsg;
         if(servMsg == "start\n") {
             this->close();

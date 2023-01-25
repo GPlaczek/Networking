@@ -13,6 +13,7 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QLineEdit>
+#include <QtWidgets/QListWidget>
 #include <QtWidgets/QPlainTextEdit>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QTextEdit>
@@ -22,8 +23,8 @@ QT_BEGIN_NAMESPACE
 class Ui_RoomGame
 {
 public:
-    QPushButton *refreshUserListBtn;
-    QPushButton *refreshRoomListBtn;
+    QPushButton *sendDescBtn;
+    QPushButton *sendGuessBtn;
     QTextEdit *msgText;
     QPushButton *disconnectBtn;
     QPushButton *toLobbyBtn;
@@ -31,26 +32,28 @@ public:
     QLineEdit *describerLine;
     QLineEdit *guesserLine;
     QPlainTextEdit *guesserText;
+    QPushButton *refreshUserListBtn;
+    QListWidget *usersList;
 
     void setupUi(QDialog *RoomGame)
     {
         if (RoomGame->objectName().isEmpty())
             RoomGame->setObjectName("RoomGame");
-        RoomGame->resize(1041, 816);
+        RoomGame->resize(1162, 839);
         QFont font;
         font.setFamilies({QString::fromUtf8("Lato")});
         font.setPointSize(16);
         RoomGame->setFont(font);
-        refreshUserListBtn = new QPushButton(RoomGame);
-        refreshUserListBtn->setObjectName("refreshUserListBtn");
-        refreshUserListBtn->setGeometry(QRect(40, 750, 441, 41));
-        refreshRoomListBtn = new QPushButton(RoomGame);
-        refreshRoomListBtn->setObjectName("refreshRoomListBtn");
-        refreshRoomListBtn->setGeometry(QRect(560, 750, 441, 41));
+        sendDescBtn = new QPushButton(RoomGame);
+        sendDescBtn->setObjectName("sendDescBtn");
+        sendDescBtn->setGeometry(QRect(30, 730, 381, 41));
+        sendGuessBtn = new QPushButton(RoomGame);
+        sendGuessBtn->setObjectName("sendGuessBtn");
+        sendGuessBtn->setGeometry(QRect(450, 730, 371, 41));
         msgText = new QTextEdit(RoomGame);
         msgText->setObjectName("msgText");
         msgText->setEnabled(true);
-        msgText->setGeometry(QRect(0, 10, 1041, 70));
+        msgText->setGeometry(QRect(0, 10, 1171, 70));
         QFont font1;
         font1.setFamilies({QString::fromUtf8("Lato")});
         font1.setPointSize(18);
@@ -60,24 +63,32 @@ public:
         msgText->setReadOnly(true);
         disconnectBtn = new QPushButton(RoomGame);
         disconnectBtn->setObjectName("disconnectBtn");
-        disconnectBtn->setGeometry(QRect(10, 100, 231, 41));
+        disconnectBtn->setGeometry(QRect(890, 700, 231, 41));
         toLobbyBtn = new QPushButton(RoomGame);
         toLobbyBtn->setObjectName("toLobbyBtn");
-        toLobbyBtn->setGeometry(QRect(260, 100, 231, 41));
+        toLobbyBtn->setGeometry(QRect(890, 640, 231, 41));
         describerText = new QPlainTextEdit(RoomGame);
         describerText->setObjectName("describerText");
-        describerText->setGeometry(QRect(40, 180, 441, 461));
+        describerText->setGeometry(QRect(30, 160, 381, 461));
         describerLine = new QLineEdit(RoomGame);
         describerLine->setObjectName("describerLine");
-        describerLine->setGeometry(QRect(560, 670, 441, 51));
+        describerLine->setGeometry(QRect(450, 650, 371, 51));
         describerLine->setFont(font);
+        describerLine->setMaxLength(128);
         guesserLine = new QLineEdit(RoomGame);
         guesserLine->setObjectName("guesserLine");
-        guesserLine->setGeometry(QRect(40, 670, 441, 51));
+        guesserLine->setGeometry(QRect(30, 650, 381, 51));
         guesserLine->setFont(font);
+        guesserLine->setMaxLength(128);
         guesserText = new QPlainTextEdit(RoomGame);
         guesserText->setObjectName("guesserText");
-        guesserText->setGeometry(QRect(560, 180, 441, 461));
+        guesserText->setGeometry(QRect(450, 160, 371, 461));
+        refreshUserListBtn = new QPushButton(RoomGame);
+        refreshUserListBtn->setObjectName("refreshUserListBtn");
+        refreshUserListBtn->setGeometry(QRect(890, 160, 231, 41));
+        usersList = new QListWidget(RoomGame);
+        usersList->setObjectName("usersList");
+        usersList->setGeometry(QRect(890, 220, 231, 401));
 
         retranslateUi(RoomGame);
 
@@ -87,8 +98,8 @@ public:
     void retranslateUi(QDialog *RoomGame)
     {
         RoomGame->setWindowTitle(QCoreApplication::translate("RoomGame", "Dialog", nullptr));
-        refreshUserListBtn->setText(QCoreApplication::translate("RoomGame", "Send description", nullptr));
-        refreshRoomListBtn->setText(QCoreApplication::translate("RoomGame", "Send guess", nullptr));
+        sendDescBtn->setText(QCoreApplication::translate("RoomGame", "Send description", nullptr));
+        sendGuessBtn->setText(QCoreApplication::translate("RoomGame", "Send guess", nullptr));
         msgText->setHtml(QCoreApplication::translate("RoomGame", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
@@ -101,6 +112,7 @@ public:
         toLobbyBtn->setText(QCoreApplication::translate("RoomGame", "Back to lobby", nullptr));
         describerText->setPlainText(QCoreApplication::translate("RoomGame", "gf", nullptr));
         guesserText->setPlainText(QCoreApplication::translate("RoomGame", " vngfg", nullptr));
+        refreshUserListBtn->setText(QCoreApplication::translate("RoomGame", "Refresh ranking", nullptr));
     } // retranslateUi
 
 };

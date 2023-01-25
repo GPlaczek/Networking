@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1041</width>
-    <height>816</height>
+    <width>1162</width>
+    <height>839</height>
    </rect>
   </property>
   <property name="font">
@@ -19,12 +19,12 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QPushButton" name="refreshUserListBtn">
+  <widget class="QPushButton" name="sendDescBtn">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>750</y>
-     <width>441</width>
+     <x>30</x>
+     <y>730</y>
+     <width>381</width>
      <height>41</height>
     </rect>
    </property>
@@ -32,12 +32,12 @@
     <string>Send description</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="refreshRoomListBtn">
+  <widget class="QPushButton" name="sendGuessBtn">
    <property name="geometry">
     <rect>
-     <x>560</x>
-     <y>750</y>
-     <width>441</width>
+     <x>450</x>
+     <y>730</y>
+     <width>371</width>
      <height>41</height>
     </rect>
    </property>
@@ -53,7 +53,7 @@
     <rect>
      <x>0</x>
      <y>10</y>
-     <width>1041</width>
+     <width>1171</width>
      <height>70</height>
     </rect>
    </property>
@@ -86,8 +86,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <widget class="QPushButton" name="disconnectBtn">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>100</y>
+     <x>890</x>
+     <y>700</y>
      <width>231</width>
      <height>41</height>
     </rect>
@@ -99,8 +99,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <widget class="QPushButton" name="toLobbyBtn">
    <property name="geometry">
     <rect>
-     <x>260</x>
-     <y>100</y>
+     <x>890</x>
+     <y>640</y>
      <width>231</width>
      <height>41</height>
     </rect>
@@ -112,9 +112,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <widget class="QPlainTextEdit" name="describerText">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>180</y>
-     <width>441</width>
+     <x>30</x>
+     <y>160</y>
+     <width>381</width>
      <height>461</height>
     </rect>
    </property>
@@ -125,9 +125,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <widget class="QLineEdit" name="describerLine">
    <property name="geometry">
     <rect>
-     <x>560</x>
-     <y>670</y>
-     <width>441</width>
+     <x>450</x>
+     <y>650</y>
+     <width>371</width>
      <height>51</height>
     </rect>
    </property>
@@ -136,14 +136,17 @@ li.checked::marker { content: &quot;\2612&quot;; }
      <family>Lato</family>
      <pointsize>16</pointsize>
     </font>
+   </property>
+   <property name="maxLength">
+    <number>128</number>
    </property>
   </widget>
   <widget class="QLineEdit" name="guesserLine">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>670</y>
-     <width>441</width>
+     <x>30</x>
+     <y>650</y>
+     <width>381</width>
      <height>51</height>
     </rect>
    </property>
@@ -153,18 +156,44 @@ li.checked::marker { content: &quot;\2612&quot;; }
      <pointsize>16</pointsize>
     </font>
    </property>
+   <property name="maxLength">
+    <number>128</number>
+   </property>
   </widget>
   <widget class="QPlainTextEdit" name="guesserText">
    <property name="geometry">
     <rect>
-     <x>560</x>
-     <y>180</y>
-     <width>441</width>
+     <x>450</x>
+     <y>160</y>
+     <width>371</width>
      <height>461</height>
     </rect>
    </property>
    <property name="plainText">
     <string> vngfg</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="refreshUserListBtn">
+   <property name="geometry">
+    <rect>
+     <x>890</x>
+     <y>160</y>
+     <width>231</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Refresh ranking</string>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="usersList">
+   <property name="geometry">
+    <rect>
+     <x>890</x>
+     <y>220</y>
+     <width>231</width>
+     <height>401</height>
+    </rect>
    </property>
   </widget>
  </widget>

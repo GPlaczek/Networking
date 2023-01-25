@@ -7,6 +7,9 @@ namespace Ui {
 class RoomGame;
 }
 
+class Lobby;
+#include "lobby.h"
+
 class RoomGame : public QDialog
 {
     Q_OBJECT
@@ -17,7 +20,13 @@ public:
 
 protected:
     QTcpSocket *socket;
+    void listUsers();
+    void disconnect();
+    void toLobby();
+    void socketReadData();
 
 private:
+    bool imWaiting = false;
     Ui::RoomGame *ui;
+    Lobby *lobby;
 };
