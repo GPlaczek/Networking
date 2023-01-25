@@ -290,6 +290,7 @@ public:
                     client->msgbuf->append(client->socketDesc);
                     Command *c;
                     while (1) {
+                        if (client -> assignedRoom != NULL) break;
                         c = client->msgbuf->getCommand();
                         if (c == NULL) { break; };
                         if (client->username.empty()) {
@@ -344,6 +345,16 @@ public:
 
                         this->internal_error(
                             epoll_ctl(this -> epollFd, EPOLL_CTL_ADD, client->socketDesc, &ev));
+                        Command *c;
+                        while(1) {
+                            // If there are some commands left in message buffer after moving client back
+                            PPRINTF(this->logger, RED, "Moving commands from the room context");
+                            if (client -> assignedRoom != NULL) break;
+                            c = client->msgbuf->getCommand();
+                            if (c == NULL) break;
+                            this->runCommand(c, client);
+                            delete c;
+                        }
                     } else if (!strcmp(cmd, "kill")) {
                         this->rooms.erase(
                             std::remove(this->rooms.begin(), this->rooms.end(), room),

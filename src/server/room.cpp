@@ -125,6 +125,12 @@ void Room::roomLoop() {
                 client->msgbuf->append(client->socketDesc);
                 Command *c;
                 while (1) {
+                    /* if user leaves the room and then immediately runs another command in the lobby
+                     * the second command might be read in the room
+                     * to avoid the command being executed in the wrong context, we must check
+                     * if the user is still in the room
+                     */
+                    if (client -> assignedRoom == NULL) break;
                     c = client->msgbuf->getCommand();
                     if (c == NULL) break;
                     this -> runCommand(c, ievent);
@@ -195,8 +201,15 @@ int Room::assign(Client *client) {
             this->initTimer();
             this->initGame();
         }
+        /* TODO: there can be some commands still queued in the client message buffer
+         * We shouldn't run them here not to delay the assignment feedback
+         * e.g. if we ran these commands here, the feedback from those commands would be
+         * sent before assign feedback itself and it is not expected behavior.
+         * This bug is not critical as queued commands will be executed after the next
+         * input from the client */
+        return 0;
     }
-    return 0;
+    return -1;
 }
 
 void Room::unassign(InEvent *ie) {
