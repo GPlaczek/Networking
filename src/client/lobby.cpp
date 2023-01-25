@@ -7,12 +7,14 @@
 #include <string>
 #include <QMessageBox>
 
-Lobby::Lobby(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::Lobby) {
+Lobby::Lobby(QWidget *parent, QTcpSocket *socket, QString username) : QDialog(parent), ui(new Ui::Lobby) {
     ui->setupUi(this);
     ui->msgText->hide();
     ui->msgText->setStyleSheet("QTextEdit { background-color : transparent; color : #de0a26; }");
 
+    this->username = username;
     this->socket = socket;
+
     connect(ui->createRoomBtn, &QPushButton::clicked, this, &Lobby::createRoom);
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &Lobby::disconnect);
     connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listItems("users", this->ui->usersList);});
@@ -62,11 +64,11 @@ void Lobby::joinRoom(QListWidgetItem *item) {
 
         if(servMsg == "0\n") {
             this->close();
-            this->waitingRoom = new WaitingRoom(nullptr, this->socket);
+            this->waitingRoom = new WaitingRoom(nullptr, this->socket, this->username);
             this->waitingRoom->show();
         } else if(servMsg == "start\n0\n") { //third person in room - game starts
             this->close();
-            this->roomGame = new RoomGame(nullptr, this->socket);
+            this->roomGame = new RoomGame(nullptr, this->socket, this->username);
             this->roomGame->show();
         } else {
             ui->msgText->show();
@@ -95,7 +97,7 @@ void Lobby::createRoom() {
             qDebug() << servMsg;
             if(servMsg == "0\n") {
                 this->close();
-                this->waitingRoom = new WaitingRoom(nullptr, this->socket);
+                this->waitingRoom = new WaitingRoom(nullptr, this->socket, this->username);
                 this->waitingRoom->show();
             } else {
                 ui->msgText->show();

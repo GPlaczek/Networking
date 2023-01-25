@@ -20,7 +20,7 @@ class Lobby : public QDialog
     Q_OBJECT
 
 public:
-    explicit Lobby(QWidget *parent = nullptr, QTcpSocket *socket = nullptr);
+    explicit Lobby(QWidget *parent = nullptr, QTcpSocket *socket = nullptr, QString username = "");
     ~Lobby();
 
 protected:
@@ -33,6 +33,7 @@ protected:
     void socketReadData();
 
 private:
+    QString username;
     Ui::Lobby *ui;
     WaitingRoom *waitingRoom;
     RoomGame *roomGame;

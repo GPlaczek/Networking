@@ -15,7 +15,7 @@ class RoomGame : public QDialog
     Q_OBJECT
 
 public:
-    explicit RoomGame(QWidget *parent = nullptr, QTcpSocket *socket = nullptr);
+    explicit RoomGame(QWidget *parent = nullptr, QTcpSocket *socket = nullptr, QString username = "");
     ~RoomGame();
 
 protected:
@@ -24,8 +24,11 @@ protected:
     void disconnect();
     void toLobby();
     void socketReadData();
+    void sendDescription();
+    void sendGuess();
 
 private:
+    QString username;
     bool imWaiting;
     Ui::RoomGame *ui;
     Lobby *lobby;

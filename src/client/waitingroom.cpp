@@ -2,13 +2,14 @@
 #include "ui_waitingroom.h"
 #include <QMessageBox>
 
-WaitingRoom::WaitingRoom(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::WaitingRoom) {
+WaitingRoom::WaitingRoom(QWidget *parent, QTcpSocket *socket, QString username) : QDialog(parent), ui(new Ui::WaitingRoom) {
     ui->setupUi(this);
     ui->msgText->hide();
     ui->msgText->setStyleSheet("QTextEdit { background-color : transparent; color : #de0a26; }");
 
     this->imWaiting = false;
     this->socket = socket;
+    this->username = username;
 
     connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listUsers();});
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &WaitingRoom::disconnect);
@@ -69,7 +70,7 @@ void WaitingRoom::toLobby() {
 
     this->imWaiting = true; //without this, lobby wouldn't get users list
     this->close();
-    this->lobby = new Lobby(nullptr, this->socket);
+    this->lobby = new Lobby(nullptr, this->socket, this->username);
     this->lobby->show();
 }
 
@@ -80,7 +81,7 @@ void WaitingRoom::socketReadData() {
         if(servMsg == "start\n") {
             this->socket->disconnect(this);
             this->close();
-            this->roomGame = new RoomGame(nullptr, this->socket);
+            this->roomGame = new RoomGame(nullptr, this->socket, this->username);
             this->roomGame->show();
         } else {
             ui->msgText->clear();

@@ -17,7 +17,7 @@ class WaitingRoom : public QDialog
     Q_OBJECT
 
 public:
-    explicit WaitingRoom(QWidget *parent = nullptr, QTcpSocket *socket = nullptr);
+    explicit WaitingRoom(QWidget *parent = nullptr, QTcpSocket *socket = nullptr, QString username = "");
     ~WaitingRoom();
 
 protected:
@@ -28,6 +28,7 @@ protected:
     void socketReadData();
 
 private:
+    QString username;
     bool imWaiting;
     Ui::WaitingRoom *ui;
     Lobby *lobby;

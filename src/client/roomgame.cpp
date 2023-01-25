@@ -2,20 +2,46 @@
 #include "ui_roomgame.h"
 #include <QMessageBox>
 
-RoomGame::RoomGame(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::RoomGame) {
+RoomGame::RoomGame(QWidget *parent, QTcpSocket *socket, QString username) : QDialog(parent), ui(new Ui::RoomGame) {
     ui->setupUi(this);
+    ui->describerText->setReadOnly(true);
+    ui->guesserText->setReadOnly(true);
+    ui->wordToDescribe->hide();
 
     this->socket = socket;
     this->imWaiting = false;
+    this->username = username;
 
     connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listUsers();});
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &RoomGame::disconnect);
     connect(ui->toLobbyBtn, &QPushButton::clicked, this, &RoomGame::toLobby);
+    connect(ui->sendDescBtn, &QPushButton::clicked, this, &RoomGame::sendDescription);
+    connect(ui->sendGuessBtn, &QPushButton::clicked, this, &RoomGame::sendGuess);
     connect(this->socket, &QTcpSocket::readyRead, this, &RoomGame::socketReadData);
 }
 
 RoomGame::~RoomGame() {
     delete ui;
+}
+// TODO: block buttons for sending description is someone is not describer
+void RoomGame::sendDescription() {
+    QString describerLine = "msg " + ui->describerLine->text().trimmed();
+    if(describerLine != "") {
+        QByteArray describerUtf8 = (describerLine+'\n').toUtf8();
+        socket->write(describerUtf8);
+    } else {
+
+    }
+}
+
+void RoomGame::sendGuess() {
+    QString guesserLine = "msg " + ui->guesserLine->text().trimmed();
+    if(guesserLine != "") {
+        QByteArray guesserUtf8 = (guesserLine+'\n').toUtf8();
+        socket->write(guesserUtf8);
+    } else {
+
+    }
 }
 
 void RoomGame::listUsers() {
@@ -66,38 +92,63 @@ void RoomGame::toLobby() {
 
     this->imWaiting = true; //without this, lobby wouldn't get users list
     this->close();
-    this->lobby = new Lobby(nullptr, this->socket);
+    this->lobby = new Lobby(nullptr, this->socket, this->username);
     this->lobby->show();
 }
 
 void RoomGame::socketReadData() {
     if(!this->imWaiting) {
-        QString servMsg = this->socket->readAll();
-//        qDebug() << servMsg;
-        QString command = servMsg.split(" ").at(0);
-        QString desc = servMsg.split(" ").at(1);
-        qDebug() << command << " | " << desc;
-
-        if(command == "clock") {
-
-        } else if (command == "win") {
-
-        } else if (command == "start") {
-
-        } else if (command == "describe") {
-
-        } else if (command == "end") {
-
-        }
-
         //clock liczba sec do konca
         //win nick - po tym wysłać users
         //start nr rundy, nick opisującego
         //describe slowo do opisania
         //end - koniec gry - wyslij users
         ui->msgText->clear();
+        QString servMsg = this->socket->readAll();
+        qDebug() << servMsg;
+        QString command = servMsg.split(" ").at(0);
+        QString desc;
+//        qDebug() << command;
+
+        if(command == "clock") {
+            desc = servMsg.split(" ").at(1);
+            ui->msgText->append("Time left: " + desc);
+        }
+        else if (command == "win") {
+            ui->wordToDescribe->clear();
+        }
+        else if (command == "start") {
+            QString round = servMsg.split(" ").at(1);
+            desc = servMsg.split(" ").at(2);
+            ui->roundNum->clear();
+            ui->roundNum->append("Round " + round);
+//            qDebug() << round << " | " << desc << " | " << this->username;
+            QString describer = desc.split("\n").at(0); //start and describe command can be sticked together
+            qDebug() << describer.length() << " - " << desc.length();
+            if(describer == this->username) {
+                qDebug("twoja kolej");
+
+            } else {
+                ui->wordToDescribe->clear();
+                ui->wordToDescribe->setAlignment(Qt::AlignCenter);
+                ui->wordToDescribe->append("Describer: " + describer);
+                ui->wordToDescribe->show();
+            }
+        }
+        else if (command == "describe") {
+            desc = servMsg.split(" ").at(1);
+            ui->wordToDescribe->clear();
+            ui->wordToDescribe->setAlignment(Qt::AlignCenter);
+            ui->wordToDescribe->append("Describe word: " + desc);
+            ui->wordToDescribe->show();
+        }
+        else if (command == "end") {
+            ui->wordToDescribe->hide();
+        }
+        else {
+            ui->msgText->append(servMsg);
+        }
         ui->msgText->setAlignment(Qt::AlignCenter);
         ui->msgText->show();
-        ui->msgText->append(servMsg);
     }
 }
