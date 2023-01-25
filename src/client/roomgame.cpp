@@ -4,7 +4,10 @@
 
 RoomGame::RoomGame(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::RoomGame) {
     ui->setupUi(this);
+
     this->socket = socket;
+    this->imWaiting = false;
+
     connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listUsers();});
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &RoomGame::disconnect);
     connect(ui->toLobbyBtn, &QPushButton::clicked, this, &RoomGame::toLobby);
@@ -19,13 +22,13 @@ void RoomGame::listUsers() {
     ui->usersList->clear();
     QString listUsers = "users";
     QByteArray listUsersUtf8 = (listUsers+'\n').toUtf8();
-    imWaiting = true;
+    this->imWaiting = true;
     this->socket->write(listUsersUtf8);
 
     while (1) {
         if(this->socket->waitForReadyRead(3000)) {
             QString items = this->socket->readAll();
-            imWaiting = false;
+            this->imWaiting = false;
             QString item = "";
             qDebug() << items;
             bool exists = false;
@@ -42,7 +45,7 @@ void RoomGame::listUsers() {
             }
         }
     }
-    imWaiting = false;
+    this->imWaiting = false;
 }
 
 void RoomGame::disconnect(){
@@ -61,16 +64,37 @@ void RoomGame::toLobby() {
     qDebug() << leaveUtf8;
     this->socket->write(leaveUtf8);
 
-    imWaiting = true; //without this, lobby wouldn't get users list
+    this->imWaiting = true; //without this, lobby wouldn't get users list
     this->close();
     this->lobby = new Lobby(nullptr, this->socket);
     this->lobby->show();
 }
 
 void RoomGame::socketReadData() {
-    if(imWaiting == false) {
+    if(!this->imWaiting) {
         QString servMsg = this->socket->readAll();
-        qDebug() << servMsg;
+//        qDebug() << servMsg;
+        QString command = servMsg.split(" ").at(0);
+        QString desc = servMsg.split(" ").at(1);
+        qDebug() << command << " | " << desc;
+
+        if(command == "clock") {
+
+        } else if (command == "win") {
+
+        } else if (command == "start") {
+
+        } else if (command == "describe") {
+
+        } else if (command == "end") {
+
+        }
+
+        //clock liczba sec do konca
+        //win nick - po tym wysłać users
+        //start nr rundy, nick opisującego
+        //describe slowo do opisania
+        //end - koniec gry - wyslij users
         ui->msgText->clear();
         ui->msgText->setAlignment(Qt::AlignCenter);
         ui->msgText->show();

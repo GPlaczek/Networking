@@ -18,8 +18,6 @@ Lobby::Lobby(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::
     connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listItems("users", this->ui->usersList);});
     connect(ui->refreshRoomListBtn, &QPushButton::clicked, this, [this]{listItems("rooms", this->ui->roomsList);});
 
-//    connect(this->socket, &QTcpSocket::readyRead, this, &Lobby::socketReadData);
-//    connect(this->socket, &QTcpSocket::disconnected, this, &Lobby::socketDisconnected);
     listItems("users", this->ui->usersList);
     listItems("rooms", this->ui->roomsList);
     connect(ui->roomsList, &QListWidget::itemClicked, this, [this](QListWidgetItem *pItem){joinRoom(pItem);});
@@ -108,16 +106,6 @@ void Lobby::createRoom() {
         ui->msgText->show();
         ui->msgText->append("Enter room name!");
     }
-}
-
-//TODO: dont steal data when someone is waiting for it
-void Lobby::socketReadData() {
-    QString servMsg = this->socket->readAll();
-
-    ui->msgText->clear();
-    ui->msgText->setAlignment(Qt::AlignCenter);
-    ui->msgText->show();
-    ui->msgText->append(servMsg);
 }
 
 void Lobby::disconnect(){

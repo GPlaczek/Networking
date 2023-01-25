@@ -7,7 +7,9 @@ WaitingRoom::WaitingRoom(QWidget *parent, QTcpSocket *socket) : QDialog(parent),
     ui->msgText->hide();
     ui->msgText->setStyleSheet("QTextEdit { background-color : transparent; color : #de0a26; }");
 
+    this->imWaiting = false;
     this->socket = socket;
+
     connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listUsers();});
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &WaitingRoom::disconnect);
     connect(ui->toLobbyBtn, &QPushButton::clicked, this, &WaitingRoom::toLobby);
@@ -23,13 +25,13 @@ void WaitingRoom::listUsers() {
     ui->usersList->clear();
     QString listUsers = "users";
     QByteArray listUsersUtf8 = (listUsers+'\n').toUtf8();
-    imWaiting = true;
+    this->imWaiting = true;
     this->socket->write(listUsersUtf8);
 
     while (1) {
         if(this->socket->waitForReadyRead(3000)) {
             QString items = this->socket->readAll();
-            imWaiting = false;
+            this->imWaiting = false;
             QString item = "";
             qDebug() << items;
             bool exists = false;
@@ -46,7 +48,7 @@ void WaitingRoom::listUsers() {
             }
         }
     }
-    imWaiting = false;
+    this->imWaiting = false;
 }
 
 void WaitingRoom::disconnect(){
@@ -65,17 +67,18 @@ void WaitingRoom::toLobby() {
     qDebug() << leaveUtf8;
     this->socket->write(leaveUtf8);
 
-    imWaiting = true; //without this, lobby wouldn't get users list
+    this->imWaiting = true; //without this, lobby wouldn't get users list
     this->close();
     this->lobby = new Lobby(nullptr, this->socket);
     this->lobby->show();
 }
 
 void WaitingRoom::socketReadData() {
-    if(imWaiting == false) {
+    if(!this->imWaiting) {
         QString servMsg = this->socket->readAll();
         qDebug() << servMsg;
         if(servMsg == "start\n") {
+            this->socket->disconnect(this);
             this->close();
             this->roomGame = new RoomGame(nullptr, this->socket);
             this->roomGame->show();

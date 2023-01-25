@@ -26,7 +26,7 @@ protected:
     void socketReadData();
 
 private:
-    bool imWaiting = false;
+    bool imWaiting;
     Ui::RoomGame *ui;
     Lobby *lobby;
 };
