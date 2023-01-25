@@ -133,8 +133,8 @@ public:
 "<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>", nullptr));
         disconnectBtn->setText(QCoreApplication::translate("RoomGame", "Disconnect", nullptr));
         toLobbyBtn->setText(QCoreApplication::translate("RoomGame", "Back to lobby", nullptr));
-        describerText->setPlainText(QCoreApplication::translate("RoomGame", "gf", nullptr));
-        guesserText->setPlainText(QCoreApplication::translate("RoomGame", " vngfg", nullptr));
+        describerText->setPlainText(QString());
+        guesserText->setPlainText(QString());
         refreshUserListBtn->setText(QCoreApplication::translate("RoomGame", "Refresh ranking", nullptr));
         wordToDescribe->setHtml(QCoreApplication::translate("RoomGame", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"

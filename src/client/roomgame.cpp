@@ -26,6 +26,7 @@ void RoomGame::sendText() {
     QString sendLine = "msg " + ui->sendLine->text().trimmed();
     ui->msgText->clear();
     if(sendLine != "") {
+        ui->sendLine->clear();
         QByteArray sendLineUtf8 = (sendLine+'\n').toUtf8();
         socket->write(sendLineUtf8);
     } else {
@@ -86,11 +87,6 @@ void RoomGame::toLobby() {
 
 void RoomGame::socketReadData() {
     if(!this->imWaiting) {
-        //clock liczba sec do konca
-        //win nick - po tym wysłać users
-        //start nr rundy, nick opisującego
-        //describe slowo do opisania
-        //end - koniec gry - wyslij users
         ui->msgText->clear();
         QString servMsg = this->socket->readAll();
         qDebug() << servMsg;
@@ -103,6 +99,7 @@ void RoomGame::socketReadData() {
         else if (command == "win") {
             ui->wordToDescribe->clear();
             ui->describerText->clear();
+            RoomGame::listUsers();
         }
         else if (command == "start") {
             QString round = servMsg.split(" ").at(1);
@@ -125,31 +122,28 @@ void RoomGame::socketReadData() {
             }
         }
         else if (command == "end") {
-//            RoomGame::listUsers();
+            RoomGame::listUsers();
         }
         else if (command == "1") { //describer sent message
             QString author = servMsg.split(" ").at(1);
             QString desc = servMsg.split(" ").at(2);
-            ui->describerText->appendPlainText("<" + author + "> " + desc + '\n');
+            desc.chop(1);
+            ui->describerText->appendPlainText("<" + author + "> " + desc);
         }
         else if (command == "0") { //guesser sent message
             QString author = servMsg.split(" ").at(1);
             QString desc = servMsg.split(" ").at(2);
-            ui->guesserText->appendPlainText("<" + author + "> " + desc + '\n');
+            desc.chop(1);
+            ui->guesserText->appendPlainText("<" + author + "> " + desc);
         }
 
         if (command == "describe") {
             QString desc = servMsg.split(" ").at(1);
+            desc.chop(1);
             ui->wordToDescribe->clear();
             ui->wordToDescribe->setAlignment(Qt::AlignCenter);
             ui->wordToDescribe->append("Describe word: " + desc);
             ui->wordToDescribe->show();
         }
-
-//        else {
-//            ui->msgText->append(servMsg);
-//        }
-        ui->msgText->setAlignment(Qt::AlignCenter);
-        ui->msgText->show();
     }
 }

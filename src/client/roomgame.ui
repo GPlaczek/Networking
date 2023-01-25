@@ -109,7 +109,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
     </rect>
    </property>
    <property name="plainText">
-    <string>gf</string>
+    <string/>
    </property>
   </widget>
   <widget class="QLineEdit" name="sendLine">
@@ -141,7 +141,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
     </rect>
    </property>
    <property name="plainText">
-    <string> vngfg</string>
+    <string/>
    </property>
   </widget>
   <widget class="QPushButton" name="refreshUserListBtn">
