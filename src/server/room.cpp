@@ -107,14 +107,14 @@ void Room::roomLoop() {
                 this->game->seconds_left = this->roundTime;
                 this->game->round_num++;
 
+                if (this->describer == this->nPlayers - 1) this -> describer = 0;
+                else this -> describer++;
                 for (auto i: this -> players) {
                     dprintf(i->data.client->socketDesc, "start %d %s\n",
                         this->game->round_num,
                         this->players[this->describer]->data.client->username.c_str());
                 }
 
-                if (this->describer == this->nPlayers - 1) this -> describer = 0;
-                else this -> describer++;
 
                 sprintf(buf, "describe %s\n", this->game->word.c_str());
                 write(this->players[describer]->data.client->socketDesc, buf, strlen(buf));
