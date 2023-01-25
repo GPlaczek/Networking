@@ -93,6 +93,15 @@ void Room::roomLoop() {
         if (ievent->src == RoomSource::CLOCK) {
             read(ievent->data.clock_fd, buf, 8);
             if (this->game->seconds_left == 0) {
+                if (this->game->round_num == this->nRounds) {
+                    close(this->clock_inevent->data.clock_fd);
+                    delete this->clock_inevent;
+                    this -> clock_inevent = NULL;
+                    for (auto i: this -> players) {
+                        dprintf(i->data.client->socketDesc, "end\n");
+                    }
+                    continue;
+                }
                 this->game->word = Words::get_word();
                 PPRINTF(this->logger, YELLOW, "The new word is %s", this->game->word.c_str());
                 this->game->seconds_left = this->roundTime;
@@ -110,11 +119,9 @@ void Room::roomLoop() {
             } else {
                 PPRINTF(this->logger, GREEN, "Tik Tok %d seconds left", this->game->seconds_left);
                 this->game->seconds_left--;
-            }
-            sprintf(buf, "clock %d\n", this->game->seconds_left);
-            int len = strlen(buf);
-            for (int i = 0; i < this -> players.size(); i++) {
-                write(this->players[i]->data.client->socketDesc, buf, len);
+                for (int i = 0; i < this -> players.size(); i++) {
+                    dprintf(this->players[i]->data.client->socketDesc, "clock %d\n", this->game->seconds_left);
+                }
             }
         } else {
             client = ievent->data.client;
