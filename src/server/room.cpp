@@ -13,9 +13,6 @@
 #include <algorithm>
 
 void Room::initGame() {
-    for (auto i: this -> players) {
-        dprintf(i->data.client->socketDesc, "start\n");
-    }
     this->game = new struct game;
     this->game->round_num = 0;
     this->game->seconds_left = 0;
@@ -99,8 +96,15 @@ void Room::roomLoop() {
                 this->game->word = Words::get_word();
                 PPRINTF(this->logger, YELLOW, "The new word is %s", this->game->word.c_str());
                 this->game->seconds_left = this->roundTime;
+                this->game->round_num++;
+
+                for (auto i: this -> players) {
+                    dprintf(i->data.client->socketDesc, "start %d\n", this->game->round_num);
+                }
+
                 if (this->describer == this->nPlayers - 1) this -> describer = 0;
                 else this -> describer++;
+
                 sprintf(buf, "describe %s\n", this->game->word.c_str());
                 write(this->players[describer]->data.client->socketDesc, buf, strlen(buf));
             } else {
@@ -158,7 +162,6 @@ void Room::runCommand(Command *c, InEvent *ie) {
         char *msg = c->getArgs();
         if (this->describer >= 0 && this->players[this->describer]->data.client != client && !strcmp(this->game->word.c_str(), msg)) {
             PPRINTF(this->logger, YELLOW, "User %s guessed the word", client->username.c_str());
-            this->game->round_num++;
             this->game->seconds_left = 0;
             sprintf(buf, "Win %s\n", client->username.c_str());
             client->score++;
