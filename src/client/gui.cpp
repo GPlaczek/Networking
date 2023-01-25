@@ -47,7 +47,7 @@ void Gui::connectToServer(){
             socket->write(usernameUtf8); //send username to server
 
             this->close();
-            lobby = new Lobby(nullptr, socket);
+            lobby = new Lobby(nullptr, socket, username);
             lobby->show();
         }
     }

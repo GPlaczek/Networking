@@ -7,19 +7,19 @@
 #include <string>
 #include <QMessageBox>
 
-Lobby::Lobby(QWidget *parent, QTcpSocket *socket) : QDialog(parent), ui(new Ui::Lobby) {
+Lobby::Lobby(QWidget *parent, QTcpSocket *socket, QString username) : QDialog(parent), ui(new Ui::Lobby) {
     ui->setupUi(this);
     ui->msgText->hide();
     ui->msgText->setStyleSheet("QTextEdit { background-color : transparent; color : #de0a26; }");
 
+    this->username = username;
     this->socket = socket;
+
     connect(ui->createRoomBtn, &QPushButton::clicked, this, &Lobby::createRoom);
     connect(ui->disconnectBtn, &QPushButton::clicked, this, &Lobby::disconnect);
     connect(ui->refreshUserListBtn, &QPushButton::clicked, this, [this]{listItems("users", this->ui->usersList);});
     connect(ui->refreshRoomListBtn, &QPushButton::clicked, this, [this]{listItems("rooms", this->ui->roomsList);});
 
-//    connect(this->socket, &QTcpSocket::readyRead, this, &Lobby::socketReadData);
-//    connect(this->socket, &QTcpSocket::disconnected, this, &Lobby::socketDisconnected);
     listItems("users", this->ui->usersList);
     listItems("rooms", this->ui->roomsList);
     connect(ui->roomsList, &QListWidget::itemClicked, this, [this](QListWidgetItem *pItem){joinRoom(pItem);});
@@ -64,11 +64,11 @@ void Lobby::joinRoom(QListWidgetItem *item) {
 
         if(servMsg == "0\n") {
             this->close();
-            this->waitingRoom = new WaitingRoom(nullptr, this->socket);
+            this->waitingRoom = new WaitingRoom(nullptr, this->socket, this->username);
             this->waitingRoom->show();
         } else if(servMsg == "start\n0\n") { //third person in room - game starts
             this->close();
-            this->roomGame = new RoomGame(nullptr, this->socket);
+            this->roomGame = new RoomGame(nullptr, this->socket, this->username);
             this->roomGame->show();
         } else {
             ui->msgText->show();
@@ -97,7 +97,7 @@ void Lobby::createRoom() {
             qDebug() << servMsg;
             if(servMsg == "0\n") {
                 this->close();
-                this->waitingRoom = new WaitingRoom(nullptr, this->socket);
+                this->waitingRoom = new WaitingRoom(nullptr, this->socket, this->username);
                 this->waitingRoom->show();
             } else {
                 ui->msgText->show();
@@ -108,16 +108,6 @@ void Lobby::createRoom() {
         ui->msgText->show();
         ui->msgText->append("Enter room name!");
     }
-}
-
-//TODO: dont steal data when someone is waiting for it
-void Lobby::socketReadData() {
-    QString servMsg = this->socket->readAll();
-
-    ui->msgText->clear();
-    ui->msgText->setAlignment(Qt::AlignCenter);
-    ui->msgText->show();
-    ui->msgText->append(servMsg);
 }
 
 void Lobby::disconnect(){

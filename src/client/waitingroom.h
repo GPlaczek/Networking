@@ -2,7 +2,6 @@
 
 #include <QDialog>
 #include <QTcpSocket>
-#include "roomgame.h"
 
 namespace Ui {
 class WaitingRoom;
@@ -10,13 +9,15 @@ class WaitingRoom;
 
 class Lobby;
 #include "lobby.h"
+class RoomGame;
+#include "roomgame.h"
 
 class WaitingRoom : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit WaitingRoom(QWidget *parent = nullptr, QTcpSocket *socket = nullptr);
+    explicit WaitingRoom(QWidget *parent = nullptr, QTcpSocket *socket = nullptr, QString username = "");
     ~WaitingRoom();
 
 protected:
@@ -27,7 +28,8 @@ protected:
     void socketReadData();
 
 private:
-    bool imWaiting = false;
+    QString username;
+    bool imWaiting;
     Ui::WaitingRoom *ui;
     Lobby *lobby;
     RoomGame *roomGame;
